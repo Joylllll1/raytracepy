@@ -16,7 +16,7 @@
 - [x] 创建 `port/harmonyos-pc` 集成分支；
 - [x] 确定源码、版本、许可证和项目范围；
 - [x] 2号提交参考环境版本、示例输入输出和运行日志；
-- [ ] 3号确认鸿蒙 PC 系统、CPU 架构、原生 CPython 和 pip
+- [x] 3号确认鸿蒙 PC 系统、CPU 架构、原生 CPython 和 pip
       （探测已完成：系统 HarmonyOS 6.1.0、架构 aarch64 已确认；
       设备无原生 CPython、无 pip，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md`）；
 - [ ] 4号提交主要依赖的安装与导入结果；
