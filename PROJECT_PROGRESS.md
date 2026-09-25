@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|
 | 1号（组长） | 基线、仓库管理、PR 审核、最终集成 | `port/harmonyos-pc` | 第 10 天 | 进行中 | 已建立基线文档 |
 | 2号 | 参考环境、固定输入输出、自动化测试 | `feature/baseline-tests` | 第 2 / 8 天 | 进行中 | 第一周基准、fixtures 和自动化测试已完成 |
-| 3号 | 鸿蒙原生 Python 环境检查 | 姓名 + Python 环境 | 第 3 天 | 未开始 | 待填写 |
+| 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 阻塞 | 目标设备无可用原生 CPython 运行时，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md` |
 | 4号 | 依赖兼容矩阵和安装脚本 | 姓名 + 依赖适配 | 第 4 / 9 天 | 未开始 | 待填写 |
 | 5号 | 源码兼容性和官方示例 | 姓名 + 源码适配 | 第 7 天 | 未开始 | 待填写 |
 | 6号 | 打包、安装文档、报告和演示 | 姓名 + 打包文档 | 第 9 天 | 未开始 | 待填写 |
@@ -16,7 +16,9 @@
 - [x] 创建 `port/harmonyos-pc` 集成分支；
 - [x] 确定源码、版本、许可证和项目范围；
 - [x] 2号提交参考环境版本、示例输入输出和运行日志；
-- [ ] 3号确认鸿蒙 PC 系统、CPU 架构、原生 CPython 和 pip；
+- [ ] 3号确认鸿蒙 PC 系统、CPU 架构、原生 CPython 和 pip
+      （探测已完成：系统 HarmonyOS 6.1.0、架构 aarch64 已确认；
+      设备无原生 CPython、无 pip，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md`）；
 - [ ] 4号提交主要依赖的安装与导入结果；
 - [ ] 5号确认 Windows 专用 `.pyd` 是否影响正常运行；
 - [ ] 第 5 天完成“继续移植 / 申请调整范围”的阶段结论。
