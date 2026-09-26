@@ -44,7 +44,7 @@
 | 项目 | 值 |
 |---|---|
 | 终端程序 | Alacritty（第三方应用，非系统终端） |
-| Shell | /bin/sh |
+| Shell | zsh（依据：命令未找到时的报错前缀均为 `zsh:`） |
 | 用户 | USER=100（非 root） |
 | 家目录 | /storage/Users/currentUser |
 | 当前目录 | /storage/Users/currentUser/Desktop |
@@ -77,10 +77,12 @@ $ ls /data/service/hnp/bin
 ls: /data/service/hnp/bin: No such file or directory
 
 $ ls /usr/bin
-（存在，共约 100 项，完整清单见附录）
+（存在，共 179 项，完整清单见附录）
 ```
 
 PATH 中 5 个目录，仅 `/usr/bin` 真实存在。
+
+> 本节及第四、五节均为 2026-09-25 探测当日的快照。此后状态已变化，见第十节。
 
 ### 3. /usr/bin 内容核查
 
@@ -192,7 +194,7 @@ $ command -v hnp
 
 ## 五、阻塞影响
 
-本机既无 Python 运行时，也无包管理器和编译器，因此：
+以下为 2026-09-25 探测当日的状态。当日该机既无 Python 运行时，也无包管理器和编译器，因此：
 
 | 负责人 | 工作项 | 受影响情况 |
 |---|---|---|
@@ -228,7 +230,7 @@ $ command -v hnp
 关于 `check_environment.py`：
 
 - 该脚本为纯标准库实现，用于检测目标机是否具备运行 RayTracePy 的条件，输出文本报告和 JSON。
-- 已在 Windows + CPython 3.10.21 上完成验证，覆盖依赖存在与缺失两种情形。
+- 已在 Windows + CPython 3.10.21 上完成验证，覆盖依赖存在与缺失两种情形；修正后另在 Windows + CPython 3.13.13 上复验，并单独验证了安装有 numba 0.67.0 时的 `@njit` 冒烟探针。
 - **未能在目标设备上执行**，原因是设备不存在 Python 解释器。此事实本身构成一条证据。
 
 ## 八、待决事项
@@ -246,6 +248,40 @@ $ command -v hnp
 - 未尝试开启 root 或规避系统权限。
 - 未改用虚拟机、容器或兼容层方案。
 - 未伪造任何设备端执行记录。
+
+## 十、后续进展（有两点待确认）
+
+2026-09-26 组长告知：目标设备的 Python 环境已安装完成，第一节与第五节所述阻塞在事实上已解除。组长所述现状如下（本文未在设备上复核）：
+
+| 项目 | 现状 |
+|---|---|
+| 包管理器 | harmonybrew（`brew`）已安装 |
+| 工具链 | `/data/service/hnp/bin` 下 hnp 工具链约 452 项，含 `clang`/`clang++` 15.0.4、`make`、`cmake`、`llvm-config`、binutils、`patchelf`、`gdb`/`lldb` |
+| 解释器 | CPython 3.10.15，位于 `~/.local/alpine-py310` |
+| 虚拟环境 | 项目 `.venv` 基于上述解释器 |
+
+因此，第五节“无包管理器和编译器”与第三节“`/data/service/hnp/bin` 不存在”的表述，均只对 2026-09-25 当日成立，不再适用于当前状态。
+
+### 待确认事项
+
+以下两点已向组长问询，**答复前不作结论**：
+
+1. **`~/.local/alpine-py310` 中的 CPython 3.10.15 是鸿蒙原生构建，还是基于 Alpine Linux / musl 的 Linux 构建？**
+   - 存疑依据：目录名含 `alpine`；工具链含 `patchelf`（musl 生态打包常用）；harmonybrew 的原生 Python 公式目前只有 3.12/3.13/3.14，未见 3.10。
+   - 若为 Linux 构建，则与本项目分工文档“禁止以兼容层替代原生”的要求存在冲突，需先行确认再决定后续安排。
+   - 第九节“未改用虚拟机、容器或兼容层方案”描述的是本人探测当日的行为，不涉及本次由他人完成的安装。
+
+2. **numba JIT 在本平台不可执行的含义。**
+   - 已知现象：JIT 编译通过，但调用时发生段错误（`si_addr=0x3c091000500`）；已排除版本因素（numba 0.60/0.61 × llvmlite 0.43/0.44 × LLVM 14/15 三套组合均复现）；平台禁用 `ptrace`，无法取栈；当前规避方式为关闭 JIT。
+   - 待确认：numba 是 RayTracePy 的必需依赖，且 `core.py` 的热路径全部为 `@njit`。关闭 JIT 是否意味着 numba 路径一次也未真正执行，从而“9 个包导入成功、7 passed”与基准文件“逐位相同”实际验证的是 numpy 路径？
+
+### 一项待解释的测量差异
+
+`examples/single/single_light.py` 在本设备耗时 66 秒，而 Windows 基准 `artifacts/reference/windows-python310/single_light_run.log` 记录 `duration_seconds=22.328691`，相差约 2.96 倍。该差异是否由关闭 JIT 引起，与上述第 2 点一并待确认。
+
+### 后续动作
+
+`scripts/check_environment.py` 已按组长审查意见修正，增加了 `@njit` 编译并调用的一次冒烟探针，用于把“可导入但不能执行”这类情形自动检出。待上述两点确认后，应在设备上重跑该脚本，以其结果替换第一节的旧结论。
 
 ## 附录：/usr/bin 完整清单
 
