@@ -18,6 +18,13 @@ Design constraints -- do not break these:
 * Emit both a human-readable report and a machine-readable JSON document whose
   keys line up with ``artifacts/reference/windows-python310/environment.json``
   so the reference and HarmonyOS results can be diffed directly.
+* Nothing may abort the run before the JSON is written.  A probe that crashes,
+  hangs or returns nonsense is a result; so is an unusable ``--probe-timeout``
+  or a character the console cannot encode.  The report is only useful if it
+  survives the situation it was written for.
+
+Exit status: ``0`` for OK or OK_WITH_WARNINGS, ``1`` for BLOCKED (which
+includes a report that could not be written), ``2`` for bad arguments.
 
 Usage::
 
@@ -31,6 +38,7 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
+import math
 import os
 import platform
 import re
@@ -43,6 +51,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +60,12 @@ DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "artifacts" / "environment"
 SEVERITY_REQUIRED = "required"
 SEVERITY_IMPORTANT = "important"
 SEVERITY_OPTIONAL = "optional"
+
+#: Failures ``subprocess`` can raise that must be turned into a reported
+#: result.  ``ValueError`` and ``OverflowError`` are included because an
+#: unusable timeout (NaN, infinity) surfaces from deep inside ``subprocess`` as
+#: one of those, and an escaping traceback would destroy the whole report.
+SUBPROCESS_FAILURES = (OSError, ValueError, OverflowError, subprocess.SubprocessError)
 
 #: Minimum setuptools version required by ``pyproject.toml``.
 MIN_SETUPTOOLS = (42,)
@@ -259,7 +274,7 @@ def capture(
             timeout=timeout,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except SUBPROCESS_FAILURES:
         return None
 
     if check and completed.returncode != 0:
@@ -304,11 +319,50 @@ def distribution_version(name: str) -> str | None:
 
 
 def default_label() -> str:
-    """Derive a report label such as ``windows-python310``."""
+    """Derive a report label such as ``windows-python310``.
+
+    The label becomes a path component, so the derived default is held to the
+    same whitelist as ``--label``: an unexpected value from ``platform.system()``
+    must not be able to point the output somewhere else.
+    """
 
     system = (platform.system() or "unknown").lower()
     info = sys.version_info
-    return f"{system}-python{info.major}{info.minor}"
+    candidate = f"{system}-python{info.major}{info.minor}"
+    return candidate if LABEL_PATTERN.match(candidate) else "unknown-python"
+
+
+def redact_url(value: str | None) -> str | None:
+    """Strip credentials embedded in a URL.
+
+    ``PIP_INDEX_URL`` commonly carries a token for a private index, and the
+    report is written into the repository and pushed, so the secret must never
+    reach the file or the terminal.
+    """
+
+    if not value:
+        return value
+    try:
+        parts = urlsplit(value)
+    except ValueError:
+        parts = None
+    if parts is not None and parts.netloc and "@" in parts.netloc:
+        host = parts.netloc.rsplit("@", 1)[1]
+        return urlunsplit(
+            (
+                parts.scheme,
+                f"<redacted>@{host}",
+                parts.path,
+                parts.query,
+                parts.fragment,
+            )
+        )
+    # No parseable authority.  A bare ``user:secret@host`` would be split as
+    # scheme ``user`` and netloc ````, so fall back to dropping everything in
+    # front of the last "@".
+    if "@" in value:
+        return "<redacted>@" + value.rsplit("@", 1)[1]
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -331,17 +385,24 @@ def collect_system() -> dict[str, Any]:
         "cpu_count": os.cpu_count(),
         "hostname": platform.node(),
         "uname": capture_from_path("uname", "-a"),
-        "libc": capture_from_path("ldd", "--version"),
+        # ``ldd --version`` exits non-zero on musl while still printing the libc
+        # version, and libc identity is exactly what this report needs, so the
+        # exit status is deliberately not treated as failure here.
+        "libc": capture_from_path("ldd", "--version", check=False),
     }
 
 
-def capture_from_path(program: str, *arguments: str) -> str | None:
+def capture_from_path(
+    program: str,
+    *arguments: str,
+    check: bool = True,
+) -> str | None:
     """Look ``program`` up on ``PATH`` and run it."""
 
     executable = shutil.which(program)
     if executable is None:
         return None
-    return capture((executable, *arguments))
+    return capture((executable, *arguments), check=check)
 
 
 def summarize_platform_file(path: Path) -> str | None:
@@ -461,7 +522,7 @@ def collect_toolchain() -> dict[str, Any]:
         "pip_available": pip_version is not None,
         "pip_version": pip_version,
         "pip_path": pip_path,
-        "pip_index_url": os.environ.get("PIP_INDEX_URL"),
+        "pip_index_url": redact_url(os.environ.get("PIP_INDEX_URL")),
         "setuptools_version": setuptools_version,
         "setuptools_meets_minimum": setuptools_ok,
         "wheel_version": wheel_version,
@@ -533,7 +594,7 @@ def run_probe(
             "error_type": "Timeout",
             "message": f"probe exceeded the {timeout:g}s timeout",
         }
-    except OSError as exc:
+    except SUBPROCESS_FAILURES as exc:
         return {
             "import_name": import_name,
             "status": "error",
@@ -669,7 +730,7 @@ def collect_git_commit() -> str | None:
             timeout=15.0,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except SUBPROCESS_FAILURES:
         return None
     if completed.returncode != 0:
         return None
@@ -695,15 +756,17 @@ def check_network(timeout: float) -> dict[str, Any]:
     import urllib.request
 
     url = os.environ.get("PIP_INDEX_URL", "https://pypi.org/simple/")
+    # The request needs the credentials, the report does not.
+    reported = redact_url(url)
     request = urllib.request.Request(url, method="HEAD")
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            return {"url": url, "reachable": True, "status": response.status}
+            return {"url": reported, "reachable": True, "status": response.status}
     except urllib.error.HTTPError as exc:
-        return {"url": url, "reachable": True, "status": exc.code}
+        return {"url": reported, "reachable": True, "status": exc.code}
     except Exception as exc:  # noqa: BLE001 - offline is a normal result
         return {
-            "url": url,
+            "url": reported,
             "reachable": False,
             "error_type": type(exc).__name__,
             "message": str(exc),
@@ -730,8 +793,15 @@ def summarize(
         SEVERITY_OPTIONAL: [],
     }
     for probe in probes:
-        if probe.get("status") != "present":
-            missing.setdefault(probe["severity"], []).append(probe["import_name"])
+        if probe.get("status") == "present":
+            continue
+        # An unlabelled probe must not vanish from the verdict, and an unknown
+        # severity must not create a fourth bucket that nobody reads: both fail
+        # closed as required, because the answer this feeds is "can we ship".
+        severity = probe.get("severity", SEVERITY_REQUIRED)
+        if severity not in missing:
+            severity = SEVERITY_REQUIRED
+        missing[severity].append(probe.get("import_name", "<unnamed probe>"))
 
     blockers: list[str] = []
     if not python_info["satisfies_python_requires"]:
@@ -744,9 +814,15 @@ def summarize(
         blockers.append("the venv module is not importable")
     blockers.extend(f"required dependency missing: {name}" for name in missing[SEVERITY_REQUIRED])
     if jit is not None and jit.get("status") != "present":
+        detail = f"{jit.get('error_type', 'error')}: {jit.get('message', '')}".strip()
+        detail = detail.strip(":").strip() or "no detail reported"
+        if jit.get("error_type") == "Timeout":
+            detail += (
+                "; the first @njit call compiles LLVM code and needs longer than "
+                "an import, so re-run with a larger --probe-timeout"
+            )
         blockers.append(
-            "numba JIT cannot execute on this host "
-            f"({jit.get('error_type', 'error')}: {jit.get('message', '')}); "
+            f"numba JIT cannot execute on this host ({detail}); "
             "RayTracePy's core loops are all @njit"
         )
 
@@ -966,12 +1042,38 @@ def valid_label(text: str) -> str:
     return text
 
 
+def positive_finite_seconds(text: str) -> float:
+    """Parse a strictly positive, finite number of seconds.
+
+    ``subprocess`` decides whether a deadline has passed with a ``>``
+    comparison.  A NaN or infinite timeout makes that comparison useless, so a
+    probe that hangs -- exactly the case this checker exists to report -- would
+    hang the checker instead, and the traceback would take the report with it.
+    Zero is rejected too: it says nothing useful and only races the process
+    start.
+    """
+
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number") from None
+    if not math.isfinite(value) or value <= 0:
+        raise argparse.ArgumentTypeError(
+            f"{text!r} is not a positive, finite number of seconds"
+        )
+    return value
+
+
 def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Report whether this machine can host RayTracePy, and write a "
             "comparable environment.json next to the reference baseline."
-        )
+        ),
+        epilog=(
+            "exit status: 0 = OK or OK_WITH_WARNINGS, 1 = BLOCKED (including a "
+            "report that could not be written), 2 = bad arguments"
+        ),
     )
     parser.add_argument(
         "--label",
@@ -982,13 +1084,14 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
             "directory (default: derived from the OS and Python version)"
         ),
     )
-    parser.add_argument(
+    destination = parser.add_mutually_exclusive_group()
+    destination.add_argument(
         "--output",
         type=Path,
         default=None,
         help="explicit path for environment.json",
     )
-    parser.add_argument(
+    destination.add_argument(
         "--no-write",
         action="store_true",
         help="print the report only; do not write any file",
@@ -1000,9 +1103,13 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--probe-timeout",
-        type=float,
+        type=positive_finite_seconds,
         default=180.0,
-        help="seconds allowed per import probe (default: 180)",
+        help=(
+            "seconds allowed per import probe (default: 180).  Applied "
+            "separately to each probe, so the worst case is about 11 times "
+            "this value."
+        ),
     )
     parser.add_argument(
         "--boot-banner",
@@ -1074,18 +1181,51 @@ def build_report(arguments: argparse.Namespace) -> dict[str, Any]:
     return report
 
 
+def emit(text: str) -> bool:
+    """Write ``text`` to stdout, tolerating a console that cannot show it.
+
+    Probe output is decoded with ``errors="replace"``, so the report itself can
+    contain U+FFFD; a pipe can also be closed at any moment.  Neither is a good
+    reason to lose the JSON document and the exit status, which are the parts
+    other people consume.
+    """
+
+    try:
+        print(text)
+    except (OSError, UnicodeError) as exc:
+        try:
+            print(
+                f"WARNING: could not print to stdout: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+        except (OSError, UnicodeError):
+            pass
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = parse_arguments(argv)
 
+    # The report contains text decoded from the platform with errors="replace",
+    # so it can hold characters the console encoding cannot represent (U+FFFD on
+    # a legacy code page, for instance).  Printing must never be able to destroy
+    # the run before the JSON is written.
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, OSError, ValueError):
+        pass
+
     if arguments.boot_banner:
-        print(f"# interpreter: {sys.executable}")
-        print(f"# banner: {sys.version.splitlines()[0]}")
-        print()
+        emit(f"# interpreter: {sys.executable}")
+        emit(f"# banner: {sys.version.splitlines()[0]}")
+        emit("")
 
     report = build_report(arguments)
-    print(render_report(report))
 
     exit_code = 1 if report["summary"]["blocked"] else 0
+
+    emit(render_report(report))
 
     if not arguments.no_write:
         output = arguments.output or (
@@ -1099,10 +1239,10 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             # The report claims to have produced a JSON document; failing to do
             # so must not look like success to a caller.
-            print(f"ERROR: could not write {output}: {exc}")
+            emit(f"ERROR: could not write {output}: {exc}")
             exit_code = 1
         else:
-            print(f"JSON written to {output}")
+            emit(f"JSON written to {output}")
 
     return exit_code
 
