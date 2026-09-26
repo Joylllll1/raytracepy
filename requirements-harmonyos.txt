@@ -1,0 +1,13 @@
+# HarmonyOS pins (task 4). Device: CPython 3.10.15 @ ~/.local/alpine-py310, 2026-09-26.
+# numba JIT SIGSEGV on execute → need pure-Python njit fallback (task 5).
+# See docs/harmonyos-pc/DEPENDENCY_MATRIX.md. Re-pin if interpreter changes.
+
+numpy==1.26.4
+scipy==1.15.3
+pandas==2.2.3
+numba==0.61.2
+llvmlite==0.44.0
+plotly==5.6.0
+datashader==0.16.3
+pytest==9.1.1
+pytest-cov==7.1.0
