@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|
 | 1号（组长） | 基线、仓库管理、PR 审核、最终集成 | `port/harmonyos-pc` | 第 10 天 | 进行中 | 已建立基线文档 |
 | 2号 | 参考环境、固定输入输出、自动化测试 | `feature/baseline-tests` | 第 2 / 8 天 | 进行中 | 第一周基准、fixtures 和自动化测试已完成 |
-| 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 待审核 | 脚本与报告已提交 PR #3。设备环境已就绪，但所用 CPython 3.10.15 系 Alpine Linux 构建、**非为鸿蒙编译**（原生执行、无模拟层），验收标准待老师裁定，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md` 第十节 |
+| 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 待审核 | 脚本与报告已提交 PR #3，环境已在设备上实测通过（检测脚本 `RESULT: OK`；`NUMBA_DISABLE_JIT=1` 时测试 7 passed）。所用 CPython 3.10.15 系 Alpine Linux 构建、**非为鸿蒙编译**（原生执行、无模拟层），验收标准待老师裁定，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 与探测报告第十、十一节 |
 | 4号 | 依赖兼容矩阵和安装脚本 | 姓名 + 依赖适配 | 第 4 / 9 天 | 未开始 | 待填写 |
 | 5号 | 源码兼容性和官方示例 | 姓名 + 源码适配 | 第 7 天 | 未开始 | 待填写 |
 | 6号 | 打包、安装文档、报告和演示 | 姓名 + 打包文档 | 第 9 天 | 未开始 | 待填写 |
@@ -19,7 +19,8 @@
 - [x] 3号确认鸿蒙 PC 系统、CPU 架构、原生 CPython 和 pip
       （探测已完成：系统 HarmonyOS 6.1.0、架构 aarch64 已确认；
       设备**不存在为鸿蒙编译的 CPython**，现用解释器为 Alpine Linux 构建、
-      在设备上原生执行。见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md` 第十节）；
+      在设备上原生执行；环境已实测通过，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md`
+      与探测报告第十、十一节）；
 - [ ] 4号提交主要依赖的安装与导入结果；
 - [ ] 5号确认 Windows 专用 `.pyd` 是否影响正常运行；
 - [ ] 第 5 天完成“继续移植 / 申请调整范围”的阶段结论。

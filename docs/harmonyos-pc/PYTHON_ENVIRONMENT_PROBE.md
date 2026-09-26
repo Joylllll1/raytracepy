@@ -1,8 +1,8 @@
 # 鸿蒙原生 Python 环境探测报告
 
 - 负责人：3号
-- 日期：2026-09-25（2026-09-26 更新第十节）
-- 状态：待裁定 —— 阻塞已解除；所用解释器非为鸿蒙编译，验收标准待老师认定
+- 日期：2026-09-25（2026-09-26 更新第十、十一节）
+- 状态：待裁定 —— 阻塞已解除，环境已实测通过（第十一节）；所用解释器非为鸿蒙编译，验收标准待老师认定
 
 ## 一、结论
 
@@ -354,6 +354,10 @@ repeat_identical=True
 **下一步应在设备上重跑该脚本**，用其输出替换第一节的旧结论，并作为第 1 小节所述
 解释器来源的独立佐证（脚本会记录 `libc`、解释器路径与 `@njit` 探针结果）。
 
+**该重跑已于 2026-09-26 完成（由 1号 执行），结果见第十一节。** 需更正一处：
+`@njit` 冒烟探针只覆盖"简单函数可编译并执行"，**不能**代表 RayTracePy 自身的
+JIT 路径可用——完整测试在 JIT 开启时仍段错误，见第十一节第 2 小节。
+
 ### 6. 移交：对照脚本的一处覆盖风险（属 2号 交付物）
 
 组长在核对设备与参考结果时触发此问题：`scripts/generate_reference_baseline.py` 的
@@ -369,6 +373,63 @@ repeat_identical=True
 "写出"含义的名称。
 
 > 该风险不影响本节第 2 小节的结论：本人已单独核对参考目录，未见污染。
+
+## 十一、环境验证（2026-09-26 实测，1号 补充）
+
+### 1. `scripts/check_environment.py` 判定 OK
+
+```console
+$ .venv/bin/python scripts/check_environment.py --boot-banner
+label        : linux-python310
+system       : Linux
+machine      : aarch64
+host gnu type: aarch64-alpine-linux-musl
+pip          : present 26.2.1
+setuptools   : 65.5.0 (>=42: True)
+[required] numpy / numba / plotly / pandas  present
+[important] scipy / llvmlite                present
+[optional] datashader / pytest              present
+njit compile+call: OK   returned 45.0   numba 0.61.2
+blockers     : none
+warnings     : none
+RESULT       : OK
+```
+
+完整输出见 `artifacts/environment/harmonyos-pc/check_environment.log`，机器可读结果见
+同目录 `environment.json`（键集覆盖 `artifacts/reference/windows-python310/environment.json`
+的全部键，可直接对比）。
+
+### 2. 完整测试：JIT 开启段错误，纯 Python 通过
+
+```console
+$ pytest -q tests/                       # 默认，JIT 开启
+..Fatal Python error: Segmentation fault
+  File ".../src/raytracepy/raytrace.py", line 175 in run
+退出码 139
+
+$ NUMBA_DISABLE_JIT=1 pytest -q tests/
+7 passed in 0.72s
+```
+
+- 第十节第 2 小节"编译可用、产物不可执行"的结论在完整测试上复现，崩溃点为
+  `src/raytracepy/raytrace.py:175`。
+- 第十节第 2 小节"关闭 JIT 只影响速度，不影响结果"成立：`7 passed` 中包含
+  `histogram_sha256` 逐位断言，即纯 Python 结果与参考完全一致。
+- 但**关闭 JIT 需要额外条件**：`NUMBA_DISABLE_JIT=1` 原先不生效，因为
+  `src/raytracepy/__init__.py` 在导入时无条件执行 `numba.config.DISABLE_JIT = False`
+  （实测：设置变量后 `before 1` / `after False`）。已提交修复分支
+  `fix/numba-disable-jit-override`：默认行为不变，仅在显式设置该变量时尊重它。
+  加上该守卫后，上表第 2 条命令才成立。
+- 据此，第十节第 2 小节"实际执行的是同一份代码的纯 Python 路径"需补充说明：
+  该路径**不能**仅靠环境变量得到，必须配合上述源码守卫。
+
+证据文件：`artifacts/environment/harmonyos-pc/pytest-evidence.log`。
+
+### 3. 遗留
+
+- 验收口径（是否要求"为鸿蒙编译"、是否必须修复 JIT 段错误）见第十节第 4 小节，待老师裁定。
+- 环境准备工具目前位于仓库外的 `~/.local/ohos-python-tools/`，建议归档后再作为验收依据，
+  见 `PYTHON_ENVIRONMENT.md` 第三节与第四节第 5 条。
 
 ## 附录：/usr/bin 完整清单
 
