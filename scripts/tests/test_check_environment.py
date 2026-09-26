@@ -511,7 +511,7 @@ class TestSummarize(unittest.TestCase):
 class TestRedactUrl(unittest.TestCase):
     def test_strips_userinfo(self):
         self.assertEqual(
-            ce.redact_url("https://buildbot:AKIAIOSFODNN7EXAMPLE@nexus.example/simple"),
+            ce.redact_url("https://buildbot:faketoken@nexus.example/simple"),
             "https://<redacted>@nexus.example/simple",
         )
 
