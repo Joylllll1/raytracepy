@@ -33,7 +33,9 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import shutil
+import signal
 import subprocess
 import sys
 import sysconfig
@@ -53,8 +55,12 @@ SEVERITY_OPTIONAL = "optional"
 #: Minimum setuptools version required by ``pyproject.toml``.
 MIN_SETUPTOOLS = (42,)
 
-#: Distributions whose version is recorded, in report order.
-REPORTED_DISTRIBUTIONS = (
+#: Distributions placed in the flattened ``packages`` map.  These are exactly
+#: the keys used by ``artifacts/reference/windows-python310/environment.json``,
+#: so the reference and the target file can be compared key by key.  The build
+#: tooling (pip, setuptools, wheel) is deliberately excluded because the
+#: reference file does not record it; it is reported under ``toolchain``.
+COMPARABLE_PACKAGES = (
     "raytracepy",
     "numpy",
     "scipy",
@@ -65,10 +71,12 @@ REPORTED_DISTRIBUTIONS = (
     "datashader",
     "pytest",
     "pytest-cov",
-    "pip",
-    "setuptools",
-    "wheel",
 )
+
+#: Characters allowed in ``--label``.  The first character must be
+#: alphanumeric so that ``.``, ``..`` and absolute paths are rejected and the
+#: report cannot be written outside ``artifacts/environment``.
+LABEL_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 #: C compilers that would be needed to build a dependency from source.
 COMPILER_NAMES = ("cc", "gcc", "clang", "g++", "clang++", "cl")
@@ -184,24 +192,77 @@ else:
 print("__PROBE__" + json.dumps(payload))
 """
 
+#: Snippet that compiles *and calls* an ``@njit`` function.  Importing numba
+#: only proves the bindings load; the JIT emits machine code for the host CPU
+#: on first call, and that is where an unsupported or emulated platform fails.
+#: A failure here is reported as a crash because the child process dies.
+JIT_SNIPPET = """
+import json
+import sys
+
+payload = {"import_name": "numba.jit", "status": "present"}
+try:
+    import numba
+    import numpy as np
+
+    @numba.njit
+    def _sum(values):
+        total = 0.0
+        for value in values:
+            total += value
+        return total
+
+    got = float(_sum(np.arange(10.0)))
+except BaseException as exc:  # noqa: BLE001 - anything is a reportable result
+    payload["status"] = "error"
+    payload["error_type"] = type(exc).__name__
+    payload["message"] = str(exc)[:500]
+else:
+    expected = 45.0
+    if abs(got - expected) > 1e-9:
+        payload["status"] = "error"
+        payload["error_type"] = "WrongResult"
+        payload["message"] = "njit returned %r, expected %r" % (got, expected)
+    else:
+        payload["jit_result"] = got
+        payload["numba_version"] = numba.__version__
+        payload["jit_enabled"] = not numba.config.DISABLE_JIT
+print("__PROBE__" + json.dumps(payload))
+"""
+
 
 # ---------------------------------------------------------------------------
 # small helpers
 # ---------------------------------------------------------------------------
 
 
-def capture(command: tuple[str, ...], timeout: float = 30.0) -> str | None:
-    """Run ``command`` and return its first line of output, or ``None``."""
+def capture(
+    command: tuple[str, ...],
+    timeout: float = 30.0,
+    check: bool = True,
+) -> str | None:
+    """Run ``command`` and return its first line of output, or ``None``.
+
+    A non-zero exit status yields ``None`` unless ``check`` is false.  Without
+    that check an interpreter lacking pip is reported as having it: the failing
+    ``python -m pip --version`` writes "No module named pip" to stderr, and
+    returning that text as the version marks pip as available, so the
+    "pip is not available" blocker can never fire.
+    """
 
     try:
         completed = subprocess.run(
             command,
             capture_output=True,
             text=True,
+            errors="replace",
             timeout=timeout,
             check=False,
         )
     except (OSError, subprocess.SubprocessError):
+        return None
+
+    if check and completed.returncode != 0:
         return None
 
     for stream in (completed.stdout, completed.stderr):
@@ -439,8 +500,21 @@ def ssl_version() -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def run_probe(snippet: str, *arguments: str, timeout: float) -> dict[str, Any]:
-    """Execute ``snippet`` in a fresh interpreter and parse its result."""
+def run_probe(
+    snippet: str,
+    *arguments: str,
+    timeout: float,
+    import_name: str,
+) -> dict[str, Any]:
+    """Execute ``snippet`` in a fresh interpreter and parse its result.
+
+    ``import_name`` is copied into every returned document, so a failure
+    carries the same key as a success.  Callers depend on that: the key used to
+    be absent from the timeout and crash paths, and ``summarize()`` raised
+    ``KeyError`` while assembling the verdict.  That destroyed the entire
+    report in precisely the case the checker exists for -- a probe that hangs
+    or takes the interpreter down -- leaving no text report and no JSON.
+    """
 
     command = (sys.executable, "-c", snippet, *arguments)
     try:
@@ -448,28 +522,61 @@ def run_probe(snippet: str, *arguments: str, timeout: float) -> dict[str, Any]:
             command,
             capture_output=True,
             text=True,
+            errors="replace",
             timeout=timeout,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return {"status": "error", "error_type": "Timeout", "message": "timed out"}
+        return {
+            "import_name": import_name,
+            "status": "error",
+            "error_type": "Timeout",
+            "message": f"probe exceeded the {timeout:g}s timeout",
+        }
     except OSError as exc:
-        return {"status": "error", "error_type": type(exc).__name__, "message": str(exc)}
+        return {
+            "import_name": import_name,
+            "status": "error",
+            "error_type": type(exc).__name__,
+            "message": str(exc),
+        }
 
     for line in reversed((completed.stdout or "").splitlines()):
         if line.startswith("__PROBE__"):
             try:
-                return json.loads(line[len("__PROBE__") :])
+                payload = json.loads(line[len("__PROBE__") :])
             except json.JSONDecodeError:
                 break
+            payload.setdefault("import_name", import_name)
+            if completed.returncode != 0:
+                payload["returncode"] = completed.returncode
+            return payload
 
     detail = (completed.stderr or completed.stdout or "").strip().splitlines()
-    return {
+    failure: dict[str, Any] = {
+        "import_name": import_name,
         "status": "error",
         "error_type": "NoProbeOutput",
         "message": detail[-1] if detail else "the probe process produced no result",
         "returncode": completed.returncode,
     }
+    if completed.returncode < 0:
+        failure["error_type"] = "Crashed"
+        failure["signal_name"] = signal_name(-completed.returncode)
+        failure["message"] = (
+            f"probe process died from {failure['signal_name']} "
+            f"(returncode {completed.returncode})"
+        )
+    return failure
+
+
+def signal_name(number: int) -> str:
+    """Return the name of a signal number, or a readable fallback."""
+
+    try:
+        return signal.Signals(number).name
+    except ValueError:
+        return f"signal {number}"
 
 
 def collect_probes(timeout: float) -> list[dict[str, Any]]:
@@ -477,7 +584,12 @@ def collect_probes(timeout: float) -> list[dict[str, Any]]:
 
     results: list[dict[str, Any]] = []
     for probe in PROBES:
-        outcome = run_probe(PROBE_SNIPPET, probe.import_name, timeout=timeout)
+        outcome = run_probe(
+            PROBE_SNIPPET,
+            probe.import_name,
+            timeout=timeout,
+            import_name=probe.import_name,
+        )
         outcome.update(
             {
                 "distribution": probe.distribution,
@@ -490,16 +602,43 @@ def collect_probes(timeout: float) -> list[dict[str, Any]]:
     return results
 
 
+def collect_jit_probe(timeout: float, numba_present: bool) -> dict[str, Any] | None:
+    """Compile and call an ``@njit`` function to see whether the JIT executes.
+
+    Import success does not imply the backend works.  On HarmonyOS PC the
+    bindings load and compilation succeeds, but the call segfaults, so a
+    package whose hot paths are all ``@njit`` cannot run.  Only meaningful when
+    numba imported in the first place; otherwise the missing dependency is
+    already reported and this returns ``None``.
+    """
+
+    if not numba_present:
+        return None
+
+    outcome = run_probe(JIT_SNIPPET, timeout=timeout, import_name="numba.jit")
+    outcome["severity"] = SEVERITY_REQUIRED
+    outcome["purpose"] = (
+        "compiles and calls an @njit kernel; RayTracePy's hot paths are all @njit"
+    )
+    return outcome
+
+
 def collect_raytracepy(timeout: float) -> dict[str, Any]:
     """Try ``import raytracepy`` from the environment and from ``src/``."""
 
     from_environment = run_probe(
-        PROBE_SNIPPET, "raytracepy", timeout=timeout
+        PROBE_SNIPPET,
+        "raytracepy",
+        timeout=timeout,
+        import_name="raytracepy",
     )
     from_environment["source"] = "installed / ambient sys.path"
 
     from_source = run_probe(
-        RAYTRACEPY_SNIPPET, str(PROJECT_ROOT / "src"), timeout=timeout
+        RAYTRACEPY_SNIPPET,
+        str(PROJECT_ROOT / "src"),
+        timeout=timeout,
+        import_name="raytracepy",
     )
     from_source["source"] = "src/ prepended to sys.path"
 
@@ -508,6 +647,33 @@ def collect_raytracepy(timeout: float) -> dict[str, Any]:
         "from_environment": from_environment,
         "from_source_tree": from_source,
     }
+
+
+def collect_git_commit() -> str | None:
+    """Return the HEAD commit of the repository containing this script.
+
+    Recorded so a report can be tied to the exact source revision, matching the
+    ``git_commit`` key of the reference ``environment.json``.
+    """
+
+    executable = shutil.which("git")
+    if executable is None:
+        return None
+    try:
+        completed = subprocess.run(
+            (executable, "rev-parse", "HEAD"),
+            capture_output=True,
+            text=True,
+            errors="replace",
+            cwd=str(PROJECT_ROOT),
+            timeout=15.0,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    return (completed.stdout or "").strip() or None
 
 
 def collect_windows_only_artifacts() -> list[str]:
@@ -554,6 +720,7 @@ def summarize(
     python_info: dict[str, Any],
     toolchain: dict[str, Any],
     probes: list[dict[str, Any]],
+    jit: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Reduce everything to a verdict for the day-5 decision gate."""
 
@@ -576,9 +743,17 @@ def summarize(
     if not toolchain["venv_importable"]:
         blockers.append("the venv module is not importable")
     blockers.extend(f"required dependency missing: {name}" for name in missing[SEVERITY_REQUIRED])
+    if jit is not None and jit.get("status") != "present":
+        blockers.append(
+            "numba JIT cannot execute on this host "
+            f"({jit.get('error_type', 'error')}: {jit.get('message', '')}); "
+            "RayTracePy's core loops are all @njit"
+        )
 
     warnings: list[str] = []
-    if toolchain["setuptools_meets_minimum"] is False:
+    if toolchain["setuptools_version"] is None:
+        warnings.append("setuptools is not installed; building from source may fail")
+    elif toolchain["setuptools_meets_minimum"] is False:
         warnings.append(
             f"setuptools {toolchain['setuptools_version']} is older than 42"
         )
@@ -603,6 +778,7 @@ def summarize(
         "missing_required": missing[SEVERITY_REQUIRED],
         "missing_important": missing[SEVERITY_IMPORTANT],
         "missing_optional": missing[SEVERITY_OPTIONAL],
+        "jit_status": jit.get("status") if jit is not None else "not probed",
         "verdict": "BLOCKED" if blockers else ("OK_WITH_WARNINGS" if warnings else "OK"),
     }
 
@@ -727,9 +903,32 @@ def render_report(report: dict[str, Any]) -> str:
         )
     add("")
 
+    jit = report.get("jit")
+    if jit is not None:
+        add("-- Numba JIT execution " + "-" * 55)
+        if jit.get("status") == "present":
+            add(
+                "njit compile+call: OK   "
+                f"returned {jit.get('jit_result')}   numba {jit.get('numba_version')}"
+            )
+            add(f"DISABLE_JIT  : {not jit.get('jit_enabled', True)}")
+        else:
+            add(
+                "njit compile+call: FAILED "
+                f"{jit.get('error_type', '')} {jit.get('message', '')}"
+            )
+            if jit.get("returncode") is not None:
+                add(f"returncode   : {jit['returncode']}")
+            add(
+                "note         : import succeeds but the compiled kernel cannot "
+                "be called, so @njit code paths are unusable"
+            )
+        add("")
+
     add("-- Summary " + "-" * 67)
     add(f"architecture : {summary['architecture']}")
     add(f"python       : {summary['python_version']}")
+    add(f"jit          : {summary['jit_status']}")
     for label, key in (
         ("blockers", "blockers"),
         ("warnings", "warnings"),
@@ -752,6 +951,21 @@ def render_report(report: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
+def valid_label(text: str) -> str:
+    """Reject labels that could escape ``artifacts/environment``.
+
+    The label becomes a path component, so ``../../x`` would otherwise write the
+    report anywhere the process can reach.
+    """
+
+    if not LABEL_PATTERN.match(text):
+        raise argparse.ArgumentTypeError(
+            "label must start with a letter or digit and contain only "
+            "letters, digits, dot, dash and underscore"
+        )
+    return text
+
+
 def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
@@ -762,6 +976,7 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--label",
         default=None,
+        type=valid_label,
         help=(
             "name of the environment being checked, used for the output "
             "directory (default: derived from the OS and Python version)"
@@ -808,6 +1023,12 @@ def build_report(arguments: argparse.Namespace) -> dict[str, Any]:
     probes = collect_probes(arguments.probe_timeout)
     raytracepy = collect_raytracepy(arguments.probe_timeout)
 
+    numba_present = any(
+        probe["import_name"] == "numba" and probe.get("status") == "present"
+        for probe in probes
+    )
+    jit = collect_jit_probe(arguments.probe_timeout, numba_present)
+
     report: dict[str, Any] = {
         "schema_version": 1,
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -819,6 +1040,7 @@ def build_report(arguments: argparse.Namespace) -> dict[str, Any]:
         "python": python_info,
         "toolchain": toolchain,
         "probes": probes,
+        "jit": jit,
         "raytracepy": raytracepy,
         "windows_only_artifacts": collect_windows_only_artifacts(),
     }
@@ -829,10 +1051,11 @@ def build_report(arguments: argparse.Namespace) -> dict[str, Any]:
     # Flatten the fields the reference environment.json already uses so the two
     # files can be compared key by key.
     report["packages"] = {
-        name: distribution_version(name) for name in REPORTED_DISTRIBUTIONS
+        name: distribution_version(name) for name in COMPARABLE_PACKAGES
     }
     report.update(
         {
+            "git_commit": collect_git_commit(),
             "platform": system["platform"],
             "system": system["system"],
             "release": system["release"],
@@ -841,10 +1064,13 @@ def build_report(arguments: argparse.Namespace) -> dict[str, Any]:
             "python_implementation": python_info["python_implementation"],
             "python_version": python_info["python_version"],
             "python_executable": python_info["python_executable"],
-            "python_cache_tag": python_info["python_cache_tag"],
+            "raytracepy_import_path": (
+                raytracepy["from_source_tree"].get("file")
+                or raytracepy["from_environment"].get("file")
+            ),
         }
     )
-    report["summary"] = summarize(system, python_info, toolchain, probes)
+    report["summary"] = summarize(system, python_info, toolchain, probes, jit)
     return report
 
 
@@ -859,6 +1085,8 @@ def main(argv: list[str] | None = None) -> int:
     report = build_report(arguments)
     print(render_report(report))
 
+    exit_code = 1 if report["summary"]["blocked"] else 0
+
     if not arguments.no_write:
         output = arguments.output or (
             DEFAULT_OUTPUT_ROOT / report["label"] / "environment.json"
@@ -869,11 +1097,14 @@ def main(argv: list[str] | None = None) -> int:
                 json.dump(report, stream, indent=2, sort_keys=True)
                 stream.write("\n")
         except OSError as exc:
-            print(f"WARNING: could not write {output}: {exc}")
+            # The report claims to have produced a JSON document; failing to do
+            # so must not look like success to a caller.
+            print(f"ERROR: could not write {output}: {exc}")
+            exit_code = 1
         else:
             print(f"JSON written to {output}")
 
-    return 1 if report["summary"]["blocked"] else 0
+    return exit_code
 
 
 if __name__ == "__main__":
