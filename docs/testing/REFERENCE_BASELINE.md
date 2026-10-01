@@ -86,7 +86,8 @@ NumPy 和 Numba 维护不同的随机状态，基准脚本会同时设置两者�
 ```powershell
 uv venv --python 3.10 .venv
 uv pip install --python .venv\Scripts\python.exe -r requirements-reference.txt
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\Activate.ps1
+pytest -q
 .\.venv\Scripts\python.exe scripts\generate_reference_baseline.py `
   --input tests\fixtures\single_light_reference_input.json `
   --output-dir artifacts\reference\windows-python310 `

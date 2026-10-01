@@ -1,21 +1,19 @@
-# 环境准备工具清单（快照）
-# 采集日期：2026-09-26
-# 来源目录：~/.local/ohos-python-tools（仓库外）
-# 格式：sha256  size  相对路径
+# 环境准备工具清单（已归档部分）
+# 生成：2026-09-28  来源：~/.local/ohos-python-tools
+# 校验：cd scripts/harmonyos && sha256sum -c toolchain-manifest.txt
 #
-# 说明：本清单记录工具目录中的脚本与预编译 wheel。其中 selfsign.py 为第三方
-#       工具（hqzing/ohos-selfsign，0BSD），不可直接 vendor；Alpine apk
-#       （pyapks/，18 个）与 harmonybrew 的 libffi 未逐项登记。来源见 README.md。
-
-6accef4182cf37f9       3420  add_stlshim.py
-17d641408cb9a091        970  fixall.py
-ba6429cc2a7a66e5       5091  fixcompat.py
-31d5baadbf08a967       4392  fixwheels.py
-f03d4d25a76b9100       1295  scratch/repro.py
-86f782502af2ba02        644  scratch/run_ref.py
-7df6eb1ca6b00a3f      20171  selfsign.py
-9e7fdf4c5e9e37af       3820  setup_py310.sh
-dd33cb6db9883864       1738  signall.py
-173bab646a730b55       1313  stlshim.cpp
-c153d4bb7822164e    1776947  wheels/llvmlite-0.44.0-cp310-cp310-linux_aarch64.whl
-d09f3e717e6cd8fe    3572678  wheels/numba-0.61.2-cp310-cp310-linux_aarch64.whl
+# 未归档（见 README.md「未归档」一节）：
+#   pyapks/*.apk  18 个 Alpine 包，共 44 MB（待定归档方式）
+#   build/        llvmlite 源码构建树，140 MB（不需要归档）
+#   selfsign.py   第三方工具（hqzing/ohos-selfsign, 0BSD），运行前需自备
+6accef4182cf37f94052a226fbe50d90dcc050117d6e8d69b5c0fab5314322aa  tools/add_stlshim.py
+17d641408cb9a0912a2e54d737a3436bb5307d5f3f1e75f32ca7389590c1174c  tools/fixall.py
+ba6429cc2a7a66e5ae0b6e61a3953a2f7da903b40f2d5e6f3ff983035a5e1955  tools/fixcompat.py
+31d5baadbf08a967f0ab40bf97f595e56261233639760d97051ce50b1e8376f7  tools/fixwheels.py
+54665e402be76e0e84e3588738ab3a58b3a2665544c37449bf521f0bfe183dde  tools/lib/libmusl_compat.so
+3da23c73b52c9e9596600f2e6342ad4f800077c5027e7ddf4438ed52a7fe09c4  tools/lib/libstlshim.so
+9e7fdf4c5e9e37af1b28127f2efe513f226c6645ea498c93675684659d956170  tools/setup_py310.sh
+dd33cb6db9883864b931acd858ac8efeac0ddbfbb49a41c3cd4c878988f0cea4  tools/signall.py
+173bab646a730b55447fa86c29113913197102ed3049b17d5e55c3676b109bec  tools/stlshim.cpp
+c153d4bb7822164e4d74b54735c8508cadd06097788848bd38c6de9ef1cf1421  wheels/llvmlite-0.44.0-cp310-cp310-linux_aarch64.whl
+d09f3e717e6cd8fe84022ff6cc2a05544f4d4a44ffefbb4c49154decd92111bd  wheels/numba-0.61.2-cp310-cp310-linux_aarch64.whl

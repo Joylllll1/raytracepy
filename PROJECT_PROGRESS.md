@@ -6,10 +6,10 @@
 |---|---|---|---|---|---|
 | 1号（组长） | 基线、仓库管理、PR 审核、最终集成 | `port/harmonyos-pc` | 第 10 天 | 进行中 | 已建立基线文档 |
 | 2号 | 参考环境、固定输入输出、自动化测试 | `feature/baseline-tests` | 第 2 / 8 天 | 进行中 | 参考基线、fixtures、自动化测试已完成；参考 vs 目标数值对比已完成（直方图 sha256 逐位一致），见 `docs/harmonyos-pc/REFERENCE_COMPARISON.md` |
-| 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 待审核 | 脚本与报告已提交 PR #3，环境已在设备上实测通过（检测脚本 `RESULT: OK`；`NUMBA_DISABLE_JIT=1` 时测试 7 passed）。所用 CPython 3.10.15 系 Alpine Linux 构建、**非为鸿蒙编译**（原生执行、无模拟层），验收标准待老师裁定，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 与探测报告第十、十一节 |
-| 4号 | 依赖兼容矩阵和安装脚本 | `feature/dependencies` / `feature/dependencies-fix` | 第 4 / 9 天 | 待审核 | 依赖清单、兼容矩阵与安装脚本已完成；安装脚本已在干净 venv 上端到端验证（`feature/dependencies-fix` 含修正，建议先合） |
-| 5号 | 源码兼容性和官方示例 | `feature/harmonyos-delivery` | 第 7 天 | 待审核 | 官方示例 `examples/single/single_light.py` 完整运行；源码仅需 1 处环境适配（`NUMBA_DISABLE_JIT` 守卫，PR #4 已合并）；Windows 专用 `.pyd` 不影响运行 |
-| 6号 | 打包、安装文档、报告和演示 | `feature/harmonyos-delivery` | 第 9 天 | 待审核 | wheel/sdist 已构建（`artifacts/release/`）；`docs/harmonyos-pc.md`、移植报告、已知问题、演示脚本齐全；全新环境复测 7 passed |
+| 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 已完成 | PR #3 已合并。环境在设备上实测通过（检测脚本 `RESULT: OK`；`NUMBA_DISABLE_JIT=1` 时测试 7 passed）。所用 CPython 3.10.15 系 Alpine Linux 构建、**非为鸿蒙编译**（原生执行、无模拟层），验收标准待老师裁定，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 与探测报告第十、十一节 |
+| 4号 | 依赖兼容矩阵和安装脚本 | `feature/dependencies-fix` | 第 4 / 9 天 | 已完成 | PR #5 已合并。依赖清单（含全部传递依赖）、兼容矩阵与安装脚本完成；安装脚本已在干净 venv 上端到端验证（`artifacts/dependencies/harmonyos-pc/install-script-verification.log`） |
+| 5号 | 源码兼容性和官方示例 | `feature/harmonyos-delivery` | 第 7 天 | 已完成 | PR #4、#5 已合并。官方示例 `examples/single/single_light.py` 完整运行；源码仅需 1 处环境适配（`NUMBA_DISABLE_JIT` 守卫）；Windows 专用 `.pyd` 不影响运行 |
+| 6号 | 打包、安装文档、报告和演示 | `feature/harmonyos-delivery` | 第 9 天 | 已完成 | PR #5 已合并。wheel/sdist 已构建（`artifacts/release/`）；`docs/harmonyos-pc.md`、移植报告、已知问题、演示脚本齐全；全新环境复测 7 passed |
 
 ## 第一周检查点
 
@@ -21,18 +21,18 @@
       设备**不存在为鸿蒙编译的 CPython**，现用解释器为 Alpine Linux 构建、
       在设备上原生执行；环境已实测通过，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md`
       与探测报告第十、十一节）；
-- [ ] 4号提交主要依赖的安装与导入结果；
-- [ ] 5号确认 Windows 专用 `.pyd` 是否影响正常运行；
-- [ ] 第 5 天完成“继续移植 / 申请调整范围”的阶段结论。
+- [x] 4号提交主要依赖的安装与导入结果；
+- [x] 5号确认 Windows 专用 `.pyd` 是否影响正常运行；
+- [x] 第 5 天完成“继续移植 / 申请调整范围”的阶段结论（结论：继续移植，不申请调整范围）。
 
 ## 第二周检查点
 
 - [x] 至少一个官方示例在鸿蒙 PC 上完整运行；
 - [x] 参考环境与鸿蒙 PC 的数值结果完成对比；
-- [ ] 所有功能 PR 已审核并合并到 `port/harmonyos-pc`；
+- [x] 所有功能 PR 已审核并合并到 `port/harmonyos-pc`（#1–#5，本收尾 PR 为最后一个）；
 - [x] 在全新环境完成安装、导入和示例复测；
 - [x] 安装包、测试报告、移植报告、已知问题和演示材料齐全；
-- [ ] 记录最终分支、commit 和仓库链接。
+- [x] 记录最终分支、commit 和仓库链接（见文末「交付信息」）。
 
 ## PR 规则
 
@@ -51,3 +51,17 @@
 当前阻塞：
 明日计划：
 ```
+
+## 交付信息
+
+- 仓库：https://github.com/Joylllll1/raytracepy
+- 集成分支：`port/harmonyos-pc`
+- 最终 commit：本收尾 PR 合并后的 `port/harmonyos-pc` 顶部提交（此前为 `51d3b09`）
+- 已合并 PR：#1 打包子包修复、#2 参考基线、#3 环境探测与就绪、#4 JIT 守卫、
+  #5 示例 / 数值对比 / 依赖 / 打包 / 文档
+- 主要交付物：`docs/harmonyos-pc.md`、`PORTING_REPORT.md`、`docs/harmonyos-pc/`、
+  `requirements-harmonyos.txt`、`artifacts/release/`、
+  `artifacts/environment/harmonyos-pc/`、`artifacts/dependencies/harmonyos-pc/`、
+  `scripts/`（含 `scripts/harmonyos/` 环境工具）
+- 待办：`scripts/harmonyos/` 中 `pyapks/*.apk`（44 MB）的归档方式待定；
+  解释器验收口径（原生执行 vs 为鸿蒙编译）待老师确认
