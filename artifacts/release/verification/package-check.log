@@ -1,0 +1,10 @@
+Platform: macOS arm64 / CPython 3.12; this is not HarmonyOS device validation
+wheel and sdist contain all 18 package Python files, byte-identical to current source
+NumPy <2.0 metadata constraint present
+installed wheel import: /Users/wjl/nju/grade3/harmonyos/raytracepy/.venv-release-check/lib/python3.12/site-packages/raytracepy/__init__.py
+installed package Python files match wheel and source
+generate_cdf(2*x): 11 points, initial 0, final 1; agrees with analytic CDF x**2
+archived artifacts/reference/windows-python310: shape=(99, 99), sum=1923054, sha256=bacd25e64f5ca3bd0d6df9bf7fa775d25d8410cea055368bebb3a0198d0cc677
+archived artifacts/environment/harmonyos-pc/reference-comparison: shape=(99, 99), sum=1923054, sha256=bacd25e64f5ca3bd0d6df9bf7fa775d25d8410cea055368bebb3a0198d0cc677
+archived reference and HarmonyOS histogram data byte-identical; no device simulation rerun
+PASS

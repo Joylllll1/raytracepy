@@ -1,0 +1,7 @@
+Platform: macOS arm64 / CPython 3.12; installed wheel, not editable source
+Command: NUMBA_DISABLE_JIT=1 python -m pytest -q tests/ scripts/tests/ -o addopts=
+.................................. [ 41%]
+................................................                   [100%]
+82 passed, 44 subtests passed in 1.74s
+
+exit_code=0

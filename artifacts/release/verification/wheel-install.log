@@ -1,0 +1,10 @@
+Platform: macOS arm64 / CPython 3.12
+Command: python -m pip install --force-reinstall --no-deps artifacts/release/raytracepy-0.0.1-py3-none-any.whl
+Processing ./artifacts/release/raytracepy-0.0.1-py3-none-any.whl
+Installing collected packages: raytracepy
+Successfully installed raytracepy-0.0.1
+
+[notice] A new release of pip is available: 25.0.1 -> 26.2.1
+[notice] To update, run: /Users/wjl/nju/grade3/harmonyos/raytracepy/.venv-release-check/bin/python -m pip install --upgrade pip
+
+exit_code=0

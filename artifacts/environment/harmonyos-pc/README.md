@@ -2,6 +2,11 @@
 
 本目录保存 3号 对鸿蒙 PC 目标设备的环境探测与验证证据。
 
+本目录是历史证据，保留原始日志。环境检测的 `environment.json` 对应
+`0712367`，`reference-comparison/` 对应 `16761de`，不能据此认定当前源码或
+2026-10-07 重建的安装包已在设备上完整复测。本次本地验证见
+`artifacts/release/verification/`，设备复测步骤见 `docs/harmonyos-pc/REVALIDATION.md`。
+
 ## 文件
 
 | 文件 | 说明 |

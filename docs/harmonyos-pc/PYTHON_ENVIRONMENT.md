@@ -2,13 +2,15 @@
 
 - 整理：1号（在目标设备上实测）
 - 日期：2026-09-26
+- 说明更新：2026-10-07；以下设备版本与结果为历史记录，最新包复测见 `REVALIDATION.md`
 - 设备：HUAWEI MateBook Pro（HAD-W32），HarmonyOS 6.1.0，API 23，aarch64，32 GB
 - 相关文档：`PYTHON_ENVIRONMENT_PROBE.md`（探测过程与解释器来源）、
   `../../artifacts/environment/harmonyos-pc/`（原始证据）
 
 ## 一、现状（实测）
 
-项目根目录下的 `.venv` 即目标环境，`raytracepy` 以 editable 方式安装（`-e .`，源码树 `src/`）：
+历史目标设备项目根目录下的 `.venv` 为测试环境，`raytracepy` 以 editable
+方式安装（`-e .`，源码树 `src/`）；本地电脑的虚拟环境不能代替设备验证：
 
 | 组件 | 版本 |
 |---|---|
@@ -46,7 +48,9 @@ NUMBA_DISABLE_JIT=1 pytest -q tests/       # 7 passed
 > 完整准备工具位于目标设备 `~/.local/ohos-python-tools/`（`setup_py310.sh`、
 > `fixall.py`、`fixcompat.py`、`fixwheels.py`、`selfsign.py`、`add_stlshim.py`、
 > `stlshim.cpp`、`pyapks/`、`wheels/`）。
-> **该目录在仓库之外，不是持久交付物**，建议归档后再作为验收依据（见第四节第 5 条）。
+> 自研脚本、shim 与设备 wheel 已归档到 `scripts/harmonyos/`；18 个 Alpine apk
+> 见 Release 附件 `ohos-python-tools-apks.tar.gz`。第三方签名工具 `selfsign.py`
+> 与 harmonybrew 的 libffi 仍需外部准备，清单见 `scripts/harmonyos/README.md`。
 
 依据 `setup_py310.sh`，环境由以下步骤构成：
 
@@ -77,20 +81,22 @@ harmonybrew 只提供 `python@3.12/3.13/3.14`，因此改用 Alpine 的 CPython 
    在设备上原生执行（aarch64 指令、链接系统 musl，无虚拟机、无容器、无模拟层）。
    验收是否接受该口径待老师裁定，见 `PYTHON_ENVIRONMENT_PROBE.md` 第十节。
 2. **numba JIT 产物无法执行**：JIT 能编译，执行编译产物时段错误
-   （`src/raytracepy/raytrace.py:175`）。纯 Python 路径结果与参考**逐位一致**，
-   耗时约为参考的 2.87 倍（见探测报告第十节第 3 小节）。
+   （`src/raytracepy/raytrace.py:175`）。历史固定负载的整数计数和直方图与参考
+   逐位一致，浮点统计在容差内；耗时 67.53 s vs 22.33 s，约 3.02 倍，
+   包含硬件差异（见 `REFERENCE_COMPARISON.md`）。
 3. **需显式关闭 JIT**：`NUMBA_DISABLE_JIT=1` 原本被
    `src/raytracepy/__init__.py` 的 `numba.config.DISABLE_JIT = False` 覆盖；
    修复分支 `fix/numba-disable-jit-override` 只在该变量显式设置时才尊重它，
    默认行为不变。
 4. **Windows 专用产物不适用**：`src/raytracepy/compile/math_custom.cp310-win_amd64.pyd`
-   在非 Windows/AMD64 上不可用（待 5号 确认是否影响运行）。
-5. **准备工具在仓库外**：`~/.local/ohos-python-tools/` 目前不随仓库交付，
-   换设备无法复现，建议归档（可放 `scripts/harmonyos/` 或作为发布附件）。
+   在非 Windows/AMD64 上不可用；该目录未被主路径引用，不影响导入与运行。
+5. **环境重建仍有外部依赖**：自研工具已归档，apk 已记录为 Release 附件；
+   `selfsign.py` 与 libffi 仍需外部准备。历史全新 venv 验证以已安装解释器的
+   设备为前提，没有验证裸设备从零重建。
 
 ## 五、结论
 
 目标设备上的 CPython 3.10.15 环境**可以安装、导入并运行 RayTracePy**：
 检测脚本判定 `OK`，`NUMBA_DISABLE_JIT=1 pytest -q tests/` 为 `7 passed`，
-数值结果与参考环境逐位一致。剩余两项——"是否为鸿蒙编译"与"是否必须修复 JIT 段错误"——
-属验收口径问题，需老师裁定。
+历史固定负载的整数计数与直方图一致，浮点统计在容差内。最新安装包尚需设备
+复测；解释器来源、是否必须支持 JIT 与性能指标仍需老师确认。

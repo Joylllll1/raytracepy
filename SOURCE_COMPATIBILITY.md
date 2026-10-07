@@ -27,7 +27,11 @@ NUMBA_DISABLE_JIT=1 python examples/single/single_light.py
 - 安装依赖将 NumPy 上限固定为 `<2.0`，作为当前移植环境的保守约束；后续若
   需要支持 NumPy 2.x，应再进行完整回归测试。
 
-## 验证
+## 历史设备验证说明
+
+以下为 PR #7 随附的设备验证说明，未附独立原始日志。
+2026-10-07 本地重建包的验证另存于 `artifacts/release/verification/`；
+最新包的鸿蒙设备完整复测尚未完成。
 
 已在鸿蒙 PC 的项目虚拟环境（CPython 3.10.15 / scipy 1.15.3 / numpy 1.26.4 /
 numba 0.61.2）实测：
@@ -44,8 +48,17 @@ numba 0.61.2）实测：
 - `utils_ref_data` 目前只被 `ref_data/ground_glass_diffuser.py` 与
   `ref_data/led.py` 的 `local_run()` 辅助函数引用，不影响主仿真与示例路径；
   但作为包内模块，在 scipy ≥1.14 环境下导入即失败，属真实缺陷。
-- 保留 `numpy<2.0` 上限的原因：源码仍使用 NumPy 2.0 已改名的 `np.trapz`
-  （`ref_data/utils_ref_data.py`），因此即使 `np.NaN` 已修正，仍建议暂时封顶。
+- 保留 `numpy<2.0` 上限作为当前验证范围的约束：源码仍使用 `np.trapz`
+  （`ref_data/utils_ref_data.py`），且未完成 NumPy 2.x 回归；修复 `np.NaN`
+  本身不能证明整个包已兼容 NumPy 2.x。
 - `NUMBA_DISABLE_JIT` 守卫沿用 PR #4 已合并的实现，本次不重复改动
   `src/raytracepy/__init__.py`。
 
+## 2026-10-07 本地新包验证
+
+在 macOS arm64 / CPython 3.12.14 的独立 venv 安装重建 wheel，核心依赖使用
+numpy 1.26.4、scipy 1.15.3、pandas 2.2.3、numba 0.61.2、llvmlite 0.44.0。
+`generate_cdf(2*x)` 返回 11 点、初值 0、终值 1，并与解析解 `x**2` 在
+`rtol=1e-14` / `atol=1e-15` 内一致。现有测试合计 82 passed、44 subtests passed。
+wheel/sdist 的 18 个包内 Python 文件及已安装文件均与当前源码一致，
+日志见 `artifacts/release/verification/`。这些结果不代替鸿蒙设备复测。

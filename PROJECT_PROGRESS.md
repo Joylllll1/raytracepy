@@ -2,14 +2,20 @@
 
 状态统一使用：`未开始`、`进行中`、`阻塞`、`待审核`、`已完成`。
 
+2026-10-07 更新：PR #1–#8 已合并，历史设备验证记录已归档。
+本次重新打包并在 macOS 上核验，最新安装包的鸿蒙设备复测尚未完成；
+解释器来源和关闭 JIT 的方案仍待老师确认。复测步骤见 `docs/harmonyos-pc/REVALIDATION.md`。
+本地安装新 wheel 后，`tests/` 与 `scripts/tests/` 合计 82 passed、44 subtests passed；
+包内 18 个 Python 文件与源码一致，CDF 功能验证通过，日志见 `artifacts/release/verification/`。
+
 | 负责人 | 工作项 | 分支 | 截止节点 | 状态 | PR / 结果 |
 |---|---|---|---|---|---|
-| 1号（组长） | 基线、仓库管理、PR 审核、最终集成 | `port/harmonyos-pc` | 第 10 天 | 进行中 | 已建立基线文档 |
-| 2号 | 参考环境、固定输入输出、自动化测试 | `feature/baseline-tests` | 第 2 / 8 天 | 进行中 | 参考基线、fixtures、自动化测试已完成；参考 vs 目标数值对比已完成（直方图 sha256 逐位一致），见 `docs/harmonyos-pc/REFERENCE_COMPARISON.md` |
+| 1号（组长） | 基线、仓库管理、PR 审核、最终集成 | `port/harmonyos-pc` | 第 10 天 | 进行中 | PR #1–#8 已合并；交付包已更新，待最新包设备复测与验收口径确认 |
+| 2号 | 参考环境、固定输入输出、自动化测试 | `feature/baseline-tests` | 第 2 / 8 天 | 已完成 | 参考基线、fixtures、自动化测试和历史设备数值对比已完成；2026-10-07 重新核验归档直方图数据逐字节一致，见 `docs/harmonyos-pc/REFERENCE_COMPARISON.md` |
 | 3号 | 鸿蒙原生 Python 环境检查 | `feature/python-environment` | 第 3 天 | 已完成 | PR #3 已合并。环境在设备上实测通过（检测脚本 `RESULT: OK`；`NUMBA_DISABLE_JIT=1` 时测试 7 passed）。所用 CPython 3.10.15 系 Alpine Linux 构建、**非为鸿蒙编译**（原生执行、无模拟层），验收标准待老师裁定，见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 与探测报告第十、十一节 |
 | 4号 | 依赖兼容矩阵和安装脚本 | `feature/dependencies-fix` | 第 4 / 9 天 | 已完成 | PR #5 已合并。依赖清单（含全部传递依赖）、兼容矩阵与安装脚本完成；安装脚本已在干净 venv 上端到端验证（`artifacts/dependencies/harmonyos-pc/install-script-verification.log`） |
-| 5号 | 源码兼容性和官方示例 | `feature/harmonyos-delivery` | 第 7 天 | 已完成 | PR #4、#5 已合并。官方示例 `examples/single/single_light.py` 完整运行；源码仅需 1 处环境适配（`NUMBA_DISABLE_JIT` 守卫）；Windows 专用 `.pyd` 不影响运行 |
-| 6号 | 打包、安装文档、报告和演示 | `feature/harmonyos-delivery` | 第 9 天 | 已完成 | PR #5 已合并。wheel/sdist 已构建（`artifacts/release/`）；`docs/harmonyos-pc.md`、移植报告、已知问题、演示脚本齐全；全新环境复测 7 passed |
+| 5号 | 源码兼容性和官方示例 | `feature/harmonyos-delivery` | 第 7 天 | 已完成 | PR #4、#5、#7 已合并；包含 JIT 环境变量守卫、SciPy 积分 API 与 NumPy 常量命名适配，算法未改；官方示例有历史设备运行记录 |
+| 6号 | 打包、安装文档、报告和演示 | `feature/harmonyos-delivery` | 第 9 天 | 进行中 | 文档和演示材料已归档；2026-10-07 重建 wheel/sdist 并核验最新源码，待新包设备复测；历史全新 venv 测试为 7 passed |
 
 ## 第一周检查点
 
@@ -29,10 +35,13 @@
 
 - [x] 至少一个官方示例在鸿蒙 PC 上完整运行；
 - [x] 参考环境与鸿蒙 PC 的数值结果完成对比；
-- [x] 所有功能 PR 已审核并合并到 `port/harmonyos-pc`（#1–#5，本收尾 PR 为最后一个）；
-- [x] 在全新环境完成安装、导入和示例复测；
+- [x] PR #1–#8 已合并到 `port/harmonyos-pc`；
+- [x] 历史版本在全新 venv 完成安装、导入和冒烟测试（7 passed）；
 - [x] 安装包、测试报告、移植报告、已知问题和演示材料齐全；
-- [x] 记录最终分支、commit 和仓库链接（见文末「交付信息」）。
+- [x] 更新安装包，纳入 PR #7 源码兼容修复；
+- [ ] 在鸿蒙设备全新 venv 中复测最新 wheel，保存版本、包哈希、测试和示例日志；
+- [ ] 确认解释器、JIT 和性能的验收要求，记录老师答复；
+- [ ] 设备复测与验收口径确认后，记录最终交付 commit。
 
 ## PR 规则
 
@@ -56,10 +65,11 @@
 
 - 仓库：https://github.com/Joylllll1/raytracepy
 - 集成分支：`port/harmonyos-pc`
-- 最终 commit：`7581468`（`port/harmonyos-pc` 顶部提交；PR #1–#7 全部合并）
+- 本次更新基于 commit：`8c8f2ef`（PR #1–#8 已合并）；最终交付 commit 待设备复测后确定
 - 已合并 PR：#1 打包子包修复、#2 参考基线、#3 环境探测与就绪、#4 JIT 守卫、
-  #5 示例 / 数值对比 / 依赖 / 打包 / 文档、#6 环境工具归档与收尾、#7 源码兼容修复
-- 源码改动：仅 2 处环境适配（`NUMBA_DISABLE_JIT` 守卫、SciPy/NumPy 命名适配），算法未改
+  #5 示例 / 数值对比 / 依赖 / 打包 / 文档、#6 环境工具归档与收尾、#7 源码兼容修复、
+  #8 Release 附件与已知问题说明
+- 源码适配：`NUMBA_DISABLE_JIT` 守卫、SciPy 积分 API、NumPy 常量命名，算法未改
 - 主要交付物：`docs/harmonyos-pc.md`、`PORTING_REPORT.md`、`SOURCE_COMPATIBILITY.md`、
   `docs/harmonyos-pc/`、`requirements-harmonyos.txt`、`artifacts/release/`、
   `artifacts/environment/harmonyos-pc/`、`artifacts/dependencies/harmonyos-pc/`、
@@ -67,4 +77,5 @@
 - 环境工具补充：18 个 Alpine 3.10.15 包（44 MB）见 Release 附件
   `ohos-python-tools-apks.tar.gz`，sha256
   `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033`
-- 待办：解释器验收口径（原生执行 vs 为鸿蒙编译）待老师确认
+- 安装包与本次本地验证记录：`artifacts/release/README.md`、`artifacts/release/verification/`
+- 待办：最新安装包设备复测；解释器来源、关闭 JIT 与性能要求待老师确认

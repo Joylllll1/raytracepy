@@ -22,13 +22,15 @@
 | 项 | 原因 |
 |---|---|
 | `selfsign.py` | **第三方工具**：[hqzing/ohos-selfsign](https://github.com/hqzing/ohos-selfsign)，0BSD。运行 `setup_py310.sh` / `signall.py` / `add_stlshim.py` 前需自行取得并放入 `tools/`（期望 sha256 前 16 位：`7df6eb1ca6b00a3f`） |
-| `pyapks/*.apk`（18 个，44 MB） | Alpine 3.10.15 官方包；体积较大，归档方式待定（release 附件 / Git LFS），清单见 `toolchain-manifest.txt` 头部说明 |
+| `pyapks/*.apk`（18 个，44 MB） | 未放入 Git；已记录为 Release 附件 `ohos-python-tools-apks.tar.gz`，sha256 `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033`；清单见 `toolchain-manifest.txt` |
 | `build/`（140 MB） | llvmlite 源码构建树，复现环境不需要 |
 | harmonybrew 的 `libffi.so.8.5.0` | 用于替换 Alpine 的 3.4.4（后者在本内核上 `ffi_closure_alloc()` 返回 NULL）；从设备上的 harmonybrew 取得 |
 
-## 已验证的端到端流程
+## 有历史验证记录的端到端流程
 
-在干净 venv 上实测通过（结果见 `PORTING_REPORT.md` 第六节）：
+2026-09-26 / 28 在已有解释器的设备上新建干净 venv，依赖安装与后处理通过
+（结果见 `PORTING_REPORT.md` 第六节）。历史日志使用设备原有工具目录；
+切换到仓库内工具、裸设备解释器重建和最新安装包仍需验证。
 
 ```bash
 export PIP_INDEX_URL=https://pypi.org/simple
@@ -66,7 +68,7 @@ shim 通过 RPATH 被扩展引用，因此 `tools/lib/` 下的两个 `.so` 必�
 
 ## 待办
 
-1. 确定 `pyapks/*.apk`（44 MB）的归档方式：release 附件或 Git LFS。
+1. 在新设备验证 Release 附件与归档工具能否从零重建解释器，并保存日志。
 2. （可选）补一份端到端脚本：调用 `setup_py310.sh` 重建解释器 + 建 venv + 装依赖，
    使其能在完全干净的设备上一键复现。
 3. 第三方 `selfsign.py` 若决定随仓库分发，需保留其版权与 0BSD 许可证声明。

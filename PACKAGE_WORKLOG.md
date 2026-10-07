@@ -84,3 +84,24 @@ python -c "import raytracepy; import raytracepy.utils; import raytracepy.theory;
 - `requirements.txt` 中的 `numba~=0.53.1` 与 Python 3.10 不兼容，需要由依赖负责人确认并提供鸿蒙端依赖版本。
 - `datashader==0.13.0` 的依赖解析较慢且存在新旧依赖约束冲突，暂未作为核心导入验证的必要条件安装。
 - wheel 是否需要包含 PDF 等额外数据文件，还需要根据实际示例和鸿蒙端需求进一步确认。
+
+## 2026-10-07：交付包更新与本地核验
+
+本次更新基于 `8c8f2ef`。检查发现 `artifacts/release/` 中的旧 wheel 尚未纳入
+PR #7：仍使用 `cumtrapz` 和 `np.NaN`。已按当前源码重建 wheel 与 sdist，
+替换同名归档文件，版本号保持 0.0.1；通过 `SHA256SUMS` 区分新旧包。
+
+构建与验证在 macOS arm64 / CPython 3.12.14 的独立 `.venv-release-check` 中执行。
+安装新 wheel 后确认导入路径位于 venv 的 `site-packages`，并完成以下核验：
+
+- wheel、sdist 和已安装包的 18 个 Python 文件均与当前源码逐字节一致。
+- NumPy `<2.0` 的包依赖约束保留；SciPy 的 CDF 辅助功能与解析解一致。
+- `NUMBA_DISABLE_JIT=1 python -m pytest -q tests/ scripts/tests/ -o addopts=''`：
+  **82 passed、44 subtests passed**。
+- 两份归档直方图的数据逐字节一致，重新计算的 SHA-256 与 metrics 记录一致。
+
+构建、安装、检查与测试日志保存在 `artifacts/release/verification/`，环境版本、
+源码哈希与包哈希见该目录 `environment.json`。本次未在鸿蒙设备执行命令，
+最新包的全新 venv 安装、官方示例和完整负载复测仍待完成，步骤见
+`docs/harmonyos-pc/REVALIDATION.md`。2026-09-19 的遗留问题保留为当时记录；
+当前依赖版本以 `requirements-harmonyos.txt` 为准。

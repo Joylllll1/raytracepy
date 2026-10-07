@@ -1,0 +1,5 @@
+Platform: macOS arm64 / CPython 3.12
+Command: python -m pip check
+No broken requirements found.
+
+exit_code=0

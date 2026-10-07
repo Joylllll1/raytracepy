@@ -2,13 +2,14 @@
 
 - 日期：2026-09-26（2026-09-28 由 1号 补充实测）｜分支：`feature/dependencies`
 - 环境：CPython 3.10.15（`~/.local/alpine-py310`）+ 项目 `.venv`
-- 证据：组长设备实测；未改 raytracepy 算法代码（仅 1 处环境适配，见 PR #4）。换解释器须重测。
+- 证据：2026-09-26 / 28 组长设备实测；算法未改。当前源码含 PR #4 的 JIT 守卫与
+  PR #7 的 SciPy/NumPy API 适配，2026-10-07 重建的包需按 `REVALIDATION.md` 设备复测。
 
 ## 兼容矩阵
 
 | 包 | 参考 | 设备 | import | 状态 |
 |---|---|---|---|---|
-| numpy | 1.22.0 | 1.26.4 | OK | 可用（版本偏离；必须 <2，源码用 `np.NaN`） |
+| numpy | 1.22.0 | 1.26.4 | OK | 可用；依赖固定 <2，`np.NaN` 已修复，仍使用 `np.trapz`，未完成 NumPy 2.x 回归 |
 | scipy | 1.10.0 | 1.15.3 | OK | 可用（版本偏离） |
 | pandas | 1.4.1 | 2.2.3 | OK | 可用（版本偏离） |
 | numba | 0.56.4 | 0.61.2 | OK | 可用，但**必须关 JIT**（见下） |
@@ -58,13 +59,15 @@ import / 编译 OK，**执行编译产物段错误**（多版本已复现；崩�
 现已改为仅在未显式设置时强制开启（默认行为不变）。因此运行测试/示例加
 `NUMBA_DISABLE_JIT=1` 即可，不再需要源码级恒等装饰器。
 
-关 JIT 后数值与 Windows 参考**逐位一致**（直方图 sha256 相同），
+历史固定负载关 JIT 后的整数计数与 Windows 参考逐位一致（直方图 sha256 相同），浮点统计在容差内；
 300 万光线耗时 67.53 s vs 参考 22.33 s，约 3.0 倍。是否必须修复 JIT 待老师裁定。
 
-## 端到端（关 JIT）
+## 历史端到端记录（关 JIT）
+
+以下为 PR #7 前的设备记录，不代表最新安装包已完成设备复测。
 
 - `NUMBA_DISABLE_JIT=1 pytest -q tests/` → 7 passed
-- `examples/single/single_light.py` 300 万光线跑通（退出码 0，生成 HTML）
+- `examples/single/single_light.py` 保存 300 万光线统计输出与 HTML（原始日志未记录退出码）
 - 干净 venv 按上述步骤从零安装 → 导入 OK + 冒烟仿真 OK + 7 passed
   （见 `PORTING_REPORT.md` 第六节与 `artifacts/environment/harmonyos-pc/fresh-env-install.log`）
 
