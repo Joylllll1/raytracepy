@@ -56,12 +56,15 @@
 
 - 仓库：https://github.com/Joylllll1/raytracepy
 - 集成分支：`port/harmonyos-pc`
-- 最终 commit：本收尾 PR 合并后的 `port/harmonyos-pc` 顶部提交（此前为 `51d3b09`）
+- 最终 commit：`7581468`（`port/harmonyos-pc` 顶部提交；PR #1–#7 全部合并）
 - 已合并 PR：#1 打包子包修复、#2 参考基线、#3 环境探测与就绪、#4 JIT 守卫、
-  #5 示例 / 数值对比 / 依赖 / 打包 / 文档
-- 主要交付物：`docs/harmonyos-pc.md`、`PORTING_REPORT.md`、`docs/harmonyos-pc/`、
-  `requirements-harmonyos.txt`、`artifacts/release/`、
+  #5 示例 / 数值对比 / 依赖 / 打包 / 文档、#6 环境工具归档与收尾、#7 源码兼容修复
+- 源码改动：仅 2 处环境适配（`NUMBA_DISABLE_JIT` 守卫、SciPy/NumPy 命名适配），算法未改
+- 主要交付物：`docs/harmonyos-pc.md`、`PORTING_REPORT.md`、`SOURCE_COMPATIBILITY.md`、
+  `docs/harmonyos-pc/`、`requirements-harmonyos.txt`、`artifacts/release/`、
   `artifacts/environment/harmonyos-pc/`、`artifacts/dependencies/harmonyos-pc/`、
   `scripts/`（含 `scripts/harmonyos/` 环境工具）
-- 待办：`scripts/harmonyos/` 中 `pyapks/*.apk`（44 MB）的归档方式待定；
-  解释器验收口径（原生执行 vs 为鸿蒙编译）待老师确认
+- 环境工具补充：18 个 Alpine 3.10.15 包（44 MB）见 Release 附件
+  `ohos-python-tools-apks.tar.gz`，sha256
+  `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033`
+- 待办：解释器验收口径（原生执行 vs 为鸿蒙编译）待老师确认

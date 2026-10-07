@@ -103,13 +103,14 @@ numba 扩展必须链接 stl shim（否则报 `symbol not found`）。
 |---|---|---|---|
 | 1 | **numba JIT 产物无法执行**：JIT 能编译，执行时段错误（`src/raytracepy/raytrace.py:175`） | 必须用纯 Python 路径，耗时约为参考的 3.0 倍 | 已提供源码守卫使 `NUMBA_DISABLE_JIT=1` 生效；数值不受影响。是否修复 JIT 待定 |
 | 2 | 解释器**原生执行但非为鸿蒙编译**（Alpine musl 二进制 + ELF 修补 + 2 个兼容 shim） | 口径问题 | 建议按"原生执行"判定；严格口径需延长周期 |
-| 3 | 环境准备工具在仓库外（`~/.local/ohos-python-tools/`），且其中 `selfsign.py` 是第三方工具（hqzing/ohos-selfsign，0BSD） | 换设备无法复现；不可直接 vendor | 需归档自研脚本并记录第三方工具来源与版本 |
+| 3 | 环境准备工具来源：自研脚本已归档；`selfsign.py` 为第三方（hqzing/ohos-selfsign，0BSD）；18 个 Alpine apk（44 MB）未入库 | 裸设备从零复现需要这些材料 | 自研脚本、`tools/lib` 的 shim、设备专用 wheel 已归档到 `scripts/harmonyos/`；`selfsign.py` 需自行获取（清单记有校验和）；apk 见 Release 附件 |
 | 4 | pip 全局索引指向 `https://pypi.cnb.cool/OpenHarmonyPCDeveloper/pypi/...`，其中没有 numpy 等包 | 按文档直接 `pip install` 会失败 | 安装时指定官方索引或本地 wheelhouse（如 `PIP_INDEX_URL=https://pypi.org/simple`） |
-| 5 | numpy 必须 < 2.0（源码使用已移除的 `np.NaN`） | 误装 numpy 2.x 会报 `AttributeError` | 已固定在 `requirements-harmonyos.txt`（1.26.4） |
+| 5 | numpy 必须 < 2.0 | 误装 numpy 2.x 会在 `ref_data/utils_ref_data.py` 的 `np.trapz`（NumPy 2 已改名为 `np.trapezoid`）处失败 | `np.NaN` 已由 PR #7 修正为 `np.nan`；因 `np.trapz` 仍在用，保留上限并固定在 `requirements-harmonyos.txt`（1.26.4） |
 | 6 | `src/raytracepy/compile/math_custom.cp310-win_amd64.pyd` 为 Windows 专用 | 无 | 该目录未被任何代码引用，不影响导入与运行 |
 | 7 | `scripts/check_environment.py` 的 `@njit` 探针只测简单函数，包自身 JIT 崩溃时仍报 OK | 检测结论可能偏乐观 | 已在探测报告第十一节注明；建议后续加强探针 |
-| 8 | 已安装扩展的 `RUNPATH` 指向仓库外的 `~/.local/alpine-llvm15/usr/lib`（libstdc++）与 `~/.local/ohos-python-tools/lib`（libstlshim / libmusl_compat） | 这些目录缺失时 numba 无法导入 | 需与环境工具一并归档，见 `scripts/harmonyos/README.md` |
+| 8 | 已安装扩展的 `RUNPATH` 指向 `~/.local/alpine-llvm15/usr/lib`（libstdc++）与 `~/.local/ohos-python-tools/lib`（libstlshim / libmusl_compat） | 这些目录缺失时 numba 无法导入 | `lib/` 下的两个 shim 已归档到 `scripts/harmonyos/tools/lib/`；如要让扩展指向仓库内副本，重跑 `add_stlshim.py` / `fixcompat.py` 即可 |
 | 9 | 传递依赖必须固定 | 不固定 `dask` 时新版会引入 `pyarrow` 依赖导致 datashader 导入失败 | 已在 `requirements-harmonyos.txt` 固定全部传递依赖 |
+| 10 | `scripts/generate_reference_baseline.py` 的 `--expected-output` 是**输出**参数，覆盖已存在文件时不提示 | 误指向参考基线会静默覆盖，之后跨平台对比变成循环论证 | 使用前勿指向 `artifacts/reference/`；建议后续加 `--force` 保护并改名（未修，已记录） |
 
 ## 八、交付物清单
 
@@ -125,3 +126,5 @@ numba 扩展必须链接 stl shim（否则报 `symbol not found`）。
 | 自动化测试 | `tests/`（7 项）、`scripts/tests/`（75 项） |
 | 实测证据与日志 | `artifacts/environment/harmonyos-pc/` |
 | 示例产出 | `artifacts/environment/harmonyos-pc/example-run/single_led.html` |
+| 源码兼容性说明 | `SOURCE_COMPATIBILITY.md` |
+| 环境工具（解释器重建） | `scripts/harmonyos/`（自研脚本 + `tools/lib` 的 shim + 设备专用 wheel）；18 个 Alpine 3.10.15 包见 Release 附件 `ohos-python-tools-apks.tar.gz`，sha256 `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033` |
