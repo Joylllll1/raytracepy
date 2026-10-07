@@ -65,7 +65,8 @@
 
 - 仓库：https://github.com/Joylllll1/raytracepy
 - 集成分支：`port/harmonyos-pc`
-- 本次更新基于 commit：`8c8f2ef`（PR #1–#8 已合并）；最终交付 commit 待设备复测后确定
+- 最终交付 commit：`e516b5f`（最新安装包已于 2026-10-07 在鸿蒙设备复测通过，
+  见 `docs/harmonyos-pc/REVALIDATION.md` 与 `artifacts/revalidation/harmonyos-pc/2026-10-07/`）
 - 已合并 PR：#1 打包子包修复、#2 参考基线、#3 环境探测与就绪、#4 JIT 守卫、
   #5 示例 / 数值对比 / 依赖 / 打包 / 文档、#6 环境工具归档与收尾、#7 源码兼容修复、
   #8 Release 附件与已知问题说明
@@ -77,5 +78,6 @@
 - 环境工具补充：18 个 Alpine 3.10.15 包（44 MB）见 Release 附件
   `ohos-python-tools-apks.tar.gz`，sha256
   `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033`
-- 安装包与本次本地验证记录：`artifacts/release/README.md`、`artifacts/release/verification/`
-- 待办：最新安装包设备复测；解释器来源、关闭 JIT 与性能要求待老师确认
+- 安装包与验证记录：`artifacts/release/README.md`、`artifacts/release/verification/`（macOS 本地）、
+  `artifacts/revalidation/harmonyos-pc/2026-10-07/`（鸿蒙设备复测）
+- 待办：解释器来源（原生执行 / 是否为鸿蒙编译）、关闭 JIT 的交付方式与性能要求待老师确认

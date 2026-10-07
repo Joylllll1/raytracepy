@@ -1,8 +1,29 @@
 # 最新安装包设备复测
 
 2026-10-07 的 wheel/sdist 已纳入 PR #7 的 SciPy/NumPy 修复。
-本次构建与本地验证在 macOS / CPython 3.12 上执行，历史设备日志对应旧版本。
-以下步骤尚未在鸿蒙设备执行，完成后再更新进度与报告。
+构建与本地验证在 macOS / CPython 3.12 上执行；**鸿蒙设备复测已于 2026-10-07 完成**，
+结果见下节，日志归档在 `artifacts/revalidation/harmonyos-pc/2026-10-07/`。
+以下步骤保留为可重复的操作说明。
+
+## 复测结果（2026-10-07，已完成）
+
+设备：HUAWEI MateBook Pro（HAD-W32），HarmonyOS 6.1.0，aarch64；
+commit `e516b5f`；CPython 3.10.15 / scipy 1.15.3 / numpy 1.26.4 / numba 0.61.2。
+
+| 步骤 | 结果 |
+|---|---|
+| `sha256sum -c artifacts/release/SHA256SUMS` | wheel 与 sdist 均 OK |
+| 全新 venv + `install_dependencies_harmonyos.py --skip-raytracepy` | 退出码 0 |
+| 安装最新 wheel（`--force-reinstall --no-deps`） | 退出码 0 |
+| 导入校验（位于新 venv 的 `site-packages`；`generate_cdf` 与解析解一致） | 通过 |
+| `NUMBA_DISABLE_JIT=1 pytest -q tests/ scripts/tests/` | **82 passed, 44 subtests passed** |
+| `scripts/check_environment.py` | `RESULT: OK_WITH_WARNINGS`（仅缺 `wheel` 构建工具，与运行无关） |
+| 300 万光线参考负载（`--verify-repeat`） | hit_count 1923054；`histogram_sha256` **与 Windows 参考逐位一致**；62.19 s；`repeat_identical=True` |
+| 官方示例 `examples/single/single_light.py` | 退出码 0，生成 `single_led.html` |
+
+据此，`PROJECT_PROGRESS.md` 与 `PORTING_REPORT.md` 已更新；最终交付 commit 定为 `e516b5f`。
+仍待老师确认的只有解释器来源、关闭 JIT 的交付方式与性能要求。
+
 
 ## 复测前记录
 
