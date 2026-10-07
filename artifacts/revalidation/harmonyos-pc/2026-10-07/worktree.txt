@@ -1,0 +1,7 @@
+?? .revalidate.log
+?? .revalidate.sh
+?? PR3_REPLY.md
+?? PR3_REVIEW.md
+?? PR3_REVIEW_ENV.md
+?? artifacts/revalidation/
+?? ohos-python-tools-apks.tar.gz

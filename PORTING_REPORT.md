@@ -78,12 +78,29 @@
 `check_environment.log`、`environment.json`、`pytest-evidence.log`、
 `example-run/`、`reference-comparison/`。
 
-## 六、历史全新 venv 复测（通过；新包待复测）
+## 六、全新 venv 复测（通过）
 
-以下记录使用 PR #7 之前的安装包。本次更换了 `artifacts/release/` 中的包，
-保留旧日志作为历史证据；不能据此认定新包已经在设备上通过。
+### 6.1 最新安装包的设备复测（2026-10-07）
 
-在一台已装好解释器的设备上新建空 venv，严格按 `docs/harmonyos-pc.md` 方式 A 执行：
+在鸿蒙设备（HAD-W32，HarmonyOS 6.1.0，aarch64）上按 `docs/harmonyos-pc/REVALIDATION.md`
+完整执行，日志归档于 `artifacts/revalidation/harmonyos-pc/2026-10-07/`。
+使用 commit `e516b5f`，环境 CPython 3.10.15 / scipy 1.15.3 / numpy 1.26.4 / numba 0.61.2：
+
+| 步骤 | 结果 |
+|---|---|
+| `sha256sum -c artifacts/release/SHA256SUMS` | wheel 与 sdist 哈希均 OK |
+| 全新 venv + `install_dependencies_harmonyos.py --skip-raytracepy` | 退出码 0 |
+| 安装最新 wheel（`--force-reinstall --no-deps`） | 退出码 0 |
+| 导入校验：`raytracepy.__file__` 位于新 venv 的 `site-packages`，`generate_cdf` 与解析解一致 | 通过 |
+| `NUMBA_DISABLE_JIT=1 pytest -q tests/ scripts/tests/` | **82 passed, 44 subtests passed** |
+| `scripts/check_environment.py` | `RESULT: OK_WITH_WARNINGS`（仅缺 `wheel` 构建工具，与运行无关） |
+| 300 万光线参考负载（`--verify-repeat`） | hit_count 1923054，sha256 `bacd25e6…d0cc677` **与 Windows 参考逐位一致**，62.19 s，`repeat_identical=True` |
+| 官方示例 `examples/single/single_light.py` | 退出码 0，生成 `single_led.html` |
+
+### 6.2 历史全新 venv 复测（PR #7 之前的安装包）
+
+以下记录使用旧安装包，保留作为历史证据。在一台已装好解释器的设备上新建空 venv，
+严格按 `docs/harmonyos-pc.md` 方式 A 执行：
 
 ```bash
 export PIP_INDEX_URL=https://pypi.org/simple
