@@ -65,19 +65,20 @@
 
 - 仓库：https://github.com/Joylllll1/raytracepy
 - 集成分支：`port/harmonyos-pc`
-- 最终交付 commit：`e516b5f`（最新安装包已于 2026-10-07 在鸿蒙设备复测通过，
-  见 `docs/harmonyos-pc/REVALIDATION.md` 与 `artifacts/revalidation/harmonyos-pc/2026-10-07/`）
+- 目标环境：**官方"鸿蒙化" CPython 3.12.9**（`ohos-aarch64`，`aarch64-unknown-linux-ohos`），
+  2026-10-10 实测通过（JIT 正常、pytest 7 passed、300 万光线与参考逐位一致、示例退出码 0）；
+  证据见 `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`
 - 已合并 PR：#1 打包子包修复、#2 参考基线、#3 环境探测与就绪、#4 JIT 守卫、
   #5 示例 / 数值对比 / 依赖 / 打包 / 文档、#6 环境工具归档与收尾、#7 源码兼容修复、
-  #8 Release 附件与已知问题说明
+  #8 Release 附件与已知问题说明、#9 安装包设备复测记录
 - 源码适配：`NUMBA_DISABLE_JIT` 守卫、SciPy 积分 API、NumPy 常量命名，算法未改
 - 主要交付物：`docs/harmonyos-pc.md`、`PORTING_REPORT.md`、`SOURCE_COMPATIBILITY.md`、
   `docs/harmonyos-pc/`、`requirements-harmonyos.txt`、`artifacts/release/`、
-  `artifacts/environment/harmonyos-pc/`、`artifacts/dependencies/harmonyos-pc/`、
-  `scripts/`（含 `scripts/harmonyos/` 环境工具）
-- 环境工具补充：18 个 Alpine 3.10.15 包（44 MB）见 Release 附件
-  `ohos-python-tools-apks.tar.gz`，sha256
-  `16141c85a9546d70b55ee0df9c1dd91ecab4534fe419af05ffea0149bea07033`
-- 安装包与验证记录：`artifacts/release/README.md`、`artifacts/release/verification/`（macOS 本地）、
-  `artifacts/revalidation/harmonyos-pc/2026-10-07/`（鸿蒙设备复测）
-- 待办：解释器来源（原生执行 / 是否为鸿蒙编译）、关闭 JIT 的交付方式与性能要求待老师确认
+  `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`、
+  `scripts/check_environment.py`、`scripts/install_dependencies_harmonyos.py`
+- 历史交付物（自建 Alpine 方案，已不再使用）：`artifacts/environment/harmonyos-pc/`、
+  `artifacts/dependencies/harmonyos-pc/`、`scripts/harmonyos/`；18 个 Alpine 包见 Release
+  附件 `ohos-python-tools-apks.tar.gz`
+- 安装包与验证记录：`artifacts/release/README.md`、`artifacts/release/verification/`
+- 最终交付 commit：本分支（官方鸿蒙运行时切换）合并后的 `port/harmonyos-pc` 顶部提交
+- 待办：应用形态与上架流程（需老师确认）

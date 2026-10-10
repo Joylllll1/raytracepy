@@ -1,4 +1,9 @@
-# 最新安装包设备复测
+# 最新安装包设备复测（历史记录）
+
+> **2026-10-10 更新**：本文描述的是**自建 Alpine Python 3.10 环境**下的安装包复测。
+> 目标环境已切换为官方"鸿蒙化" CPython 3.12.9，当前复测记录见
+> `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/` 与
+> `PORTING_REPORT.md` 第五、六节。本文保留作为历史操作说明。
 
 2026-10-07 的 wheel/sdist 已纳入 PR #7 的 SciPy/NumPy 修复。
 构建与本地验证在 macOS / CPython 3.12 上执行；**鸿蒙设备复测已于 2026-10-07 完成**，

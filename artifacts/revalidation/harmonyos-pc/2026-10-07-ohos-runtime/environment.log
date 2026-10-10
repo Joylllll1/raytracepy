@@ -1,0 +1,137 @@
+==============================================================================
+RayTracePy native Python environment check
+==============================================================================
+label        : harmonyos-python312
+captured     : 2026-10-10T12:12:28.916789+00:00
+hostname     : localhost
+project root : /storage/Users/currentUser/harmony/raytracepy
+script       : /storage/Users/currentUser/harmony/raytracepy/scripts/check_environment.py
+
+-- System --------------------------------------------------------------------
+system       : HarmonyOS
+release      : HongMeng Kernel 1.12.0
+machine      : aarch64   <- CPU architecture
+processor    : 
+platform     : HarmonyOS-HongMeng_Kernel_1.12.0-aarch64-64bit
+64-bit       : True
+cpu count    : 20
+uname        : HarmonyOS localhost HongMeng Kernel 1.12.0 #1 SMP Wed Apr 29 10:16:03 UTC 2026 aarch64 Toybox
+
+-- Platform evidence (/etc, /proc) --------------------------------------------
+/proc/meminfo:
+    MemTotal:       32680652 kB
+    MemAvailable:   19972096 kB
+    SwapTotal:      52428800 kB
+/proc/cpuinfo:
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd42
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd42
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd42
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd42
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+    Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm ssbs sb paca pacg dcpodp flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti
+    CPU implementer	: 0x48
+    CPU architecture: 8
+    CPU part	: 0xd43
+/etc/config_sec_feature_release.json:
+    {
+        "config": [
+            {
+                "featureCode": "0x0006",
+                "isCharging": true,
+                "network": [
+                    0,
+                    1,
+                    3
+                ],
+                "interval": 10080,
+                "params": {}
+            }
+        ]
+    }
+
+-- Python --------------------------------------------------------------------
+implementation: CPython
+version      : 3.12.9
+cache tag    : cpython-312   <- Python 3.10 reports cpython-310
+debug build  : False
+executable   : /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/bin/python
+prefix       : /storage/Users/currentUser/harmony/raytracepy/.venv-ohos
+virtualenv   : True
+sysconfig    : ohos-aarch64
+host gnu type: aarch64-unknown-linux-ohos   <- target triple for C extensions
+requires>=3.10: True
+
+-- Toolchain -----------------------------------------------------------------
+pip          : present 26.2.1
+pip path     : /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/pip
+setuptools   : None (>=42: None)
+wheel        : None
+venv         : True
+ensurepip    : True
+ssl          : True (OpenSSL 3.0.16 11 Feb 2025)
+make         : True
+compiler     : clang -> /data/service/hnp/bin/clang :: clang version 15.0.4 (/srv/workspace/llvm-release/2026_0313_llvm15_release/toolchain/llvm-project/clang 0e01a01d567b9acfce8edfdadb66a7b69f088fb0)
+compiler     : clang++ -> /data/service/hnp/bin/clang++ :: clang version 15.0.4 (/srv/workspace/llvm-release/2026_0313_llvm15_release/toolchain/llvm-project/clang 0e01a01d567b9acfce8edfdadb66a7b69f088fb0)
+
+-- Dependency probes ---------------------------------------------------------
+[required] numpy        present 1.26.3  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/numpy/__init__.py
+[required] numba        present 0.65.1  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/numba/__init__.py
+[required] plotly       present 7.1.0  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/plotly/__init__.py
+[required] pandas       present 2.3.1  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/pandas/__init__.py
+[important] scipy        present 1.15.3  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/scipy/__init__.py
+[important] llvmlite     present 0.47.0  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/llvmlite/__init__.py
+[optional] datashader   MISSING ModuleNotFoundError No module named 'pyarrow'
+[optional] pytest       present 9.1.1  /storage/Users/currentUser/harmony/raytracepy/.venv-ohos/lib/python3.12/site-packages/pytest/__init__.py
+
+-- RayTracePy ----------------------------------------------------------------
+distribution : 0.0.1
+from_environment: present
+from_source_tree: present
+windows-only : math_custom.cp310-win_amd64.pyd   <- not usable on a non-Windows/AMD64 host
+
+-- Numba JIT execution -------------------------------------------------------
+njit compile+call: OK   returned 45.0   numba 0.65.1
+DISABLE_JIT  : False
+
+-- Summary -------------------------------------------------------------------
+architecture : aarch64
+python       : 3.12.9
+jit          : present
+blockers     : none
+warnings     : setuptools is not installed; building from source may fail
+warnings     : wheel is not installed
+
+RESULT       : OK_WITH_WARNINGS
+==============================================================================
+JSON written to artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/environment.json

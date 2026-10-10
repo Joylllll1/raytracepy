@@ -1,87 +1,63 @@
 # 鸿蒙 PC 依赖兼容矩阵（4号）
 
-- 日期：2026-09-26（2026-09-28 由 1号 补充实测）｜分支：`feature/dependencies`
-- 环境：CPython 3.10.15（`~/.local/alpine-py310`）+ 项目 `.venv`
-- 证据：2026-09-26 / 28 组长设备实测；算法未改。当前源码含 PR #4 的 JIT 守卫与
-  PR #7 的 SciPy/NumPy API 适配，2026-10-07 重建的包需按 `REVALIDATION.md` 设备复测。
+- 日期：2026-09-26（1号 于 2026-09-28、2026-10-10 补充实测）
+- 当前环境：**官方"鸿蒙化" CPython 3.12.9**（`ohos-aarch64`，`~/usr/local`）+ 项目 `.venv-ohos`
+- 历史环境：自建 Alpine CPython 3.10.15（已不再使用，见 `PYTHON_ENVIRONMENT.md` 第六节）
+- 证据：`artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`
 
-## 兼容矩阵
+## 一、兼容矩阵（2026-10-10 实测）
 
-| 包 | 参考 | 设备 | import | 状态 |
-|---|---|---|---|---|
-| numpy | 1.22.0 | 1.26.4 | OK | 可用；依赖固定 <2，`np.NaN` 已修复，仍使用 `np.trapz`，未完成 NumPy 2.x 回归 |
-| scipy | 1.10.0 | 1.15.3 | OK | 可用（版本偏离） |
-| pandas | 1.4.1 | 2.2.3 | OK | 可用（版本偏离） |
-| numba | 0.56.4 | 0.61.2 | OK | 可用，但**必须关 JIT**（见下） |
-| llvmlite | 0.39.1 | 0.44.0 | OK | 可用（随 numba，链接 LLVM 15.0.7） |
-| plotly | 5.6.0 | 5.6.0 | OK | 可选（可视化） |
-| datashader | 0.13.0 | 0.16.3 | OK | 可选（可视化） |
-| pytest / pytest-cov | 9.1.1 / 7.1.0 | 同左 | OK | 可用 |
-| raytracepy | 0.0.1 | 源码树 / wheel | OK | 可用，运行需 `NUMBA_DISABLE_JIT=1` |
+| 包 | 参考 | 当前目标 | 来源 | import | 状态 |
+|---|---|---|---|---|---|
+| numpy | 1.22.0 | 1.26.3 | 社区源 `cp312-ohos_aarch64` wheel | OK | 可用；固定 <2（源码仍用 `np.trapz`） |
+| scipy | 1.10.0 | 1.15.3 | 社区源 wheel | OK | 可用（版本偏离） |
+| pandas | 1.4.1 | 2.3.1 | 社区源 wheel | OK | 可用（版本偏离） |
+| numba | 0.56.4 | 0.65.1 | 社区源 wheel | OK | **JIT 正常执行**（无需关闭） |
+| llvmlite | 0.39.1 | 0.47.0 | 社区源 wheel | OK | 可用（随 numba） |
+| plotly | 5.6.0 | 7.1.0 | 纯 Python | OK | 可用（官方示例已验证） |
+| datashader | 0.13.0 | 0.19.1 | 纯 Python | OK | 可用（仅 `examples/` 使用，库本身不依赖） |
+| matplotlib / tkinter | — | 3.11.1 / 3.12.9.post1 | 社区源 wheel | OK | 应用形态（GUI）可用 |
+| pytest / pytest-cov | 9.1.1 / 7.1.0 | 同左 | 纯 Python | OK | 可用 |
+| raytracepy | 0.0.1 | 源码树 / wheel | — | OK | 可用，**JIT 开启** |
 
-钉版本：`requirements-harmonyos.txt`（含全部传递依赖）。
-安装：`python scripts/install_dependencies_harmonyos.py`（已按下方顺序实现）。
+钉版本：`requirements-harmonyos.txt`。
+安装：`python scripts/install_dependencies_harmonyos.py`（或见 `docs/harmonyos-pc.md` 第二节）。
 
-## 安装顺序与后处理（必须，2026-09-28 补充）
+## 二、与历史（Alpine）环境的差异
 
-```bash
-export PIP_INDEX_URL=https://pypi.org/simple
-1) numpy              (PyPI musllinux wheel)
-2) 设备专用 llvmlite / numba wheel（PyPI 无 musllinux 版，先装，否则会源码构建失败）
-3) requirements-harmonyos.txt 其余依赖
-4) fixall.py <site-packages>        ELF 元数据 + musl 兼容 + 代码签名
-5) add_stlshim.py <site-packages>   numba 的 4 个扩展链接 stl shim
-6) raytracepy（`pip install -e .` 或 wheel）
-```
-
-第 4、5 步不可省略，实测失败现象：
-
-| 现象 | 原因 | 处理 |
+| 项 | 历史环境 | 当前环境 |
 |---|---|---|
-| `ImportError: ... Permission denied` 加载 `.so` | 扩展缺 `.codesign` 段，OpenHarmony 拒绝 `dlopen` | `fixall.py` |
-| `symbol not found: _ZNSt20bad_array_new_lengthC1Ev` | numba 的 clang 编译扩展缺 libstdc++ 符号 | `add_stlshim.py` |
+| 解释器三元组 | `aarch64-alpine-linux-musl` | **`aarch64-unknown-linux-ohos`**（真鸿蒙原生） |
+| numba / llvmlite | 本地修补的 `linux_aarch64` wheel | 社区源 `cp312-ohos_aarch64` wheel |
+| JIT | 执行段错误，只能纯 Python | **正常执行** |
+| 额外步骤 | 需 `fixall.py`（签名）+ `add_stlshim.py` | **不需要**（无 ELF 修补、无 shim） |
+| 性能（300 万光线） | 67.5 s（纯 Python） | **33.4 s**（JIT；Windows 参考 22.33 s，差异主要来自硬件） |
 
-修复后扩展的 RUNPATH 指向 `~/.local/alpine-llvm15/usr/lib`（libstdc++）与
-`~/.local/ohos-python-tools/lib`（libstlshim / libmusl_compat），这两个目录是**运行时依赖**。
+## 三、依赖兼容性发现（2026-10-10，重要）
 
-## 传递依赖必须固定
+1. **必须 `--prefer-binary`**：pip 在"社区源 + 备用源（清华/PyPI）"间取最高版本，
+   备用源的更新源码包会盖掉社区源的 ohos wheel（实测 matplotlib 3.11.2 sdist 顶掉
+   3.11.1 wheel，随后因缺 meson 构建失败）。
+2. **不要安装 dask**：
+   - `datashader 0.16.x + dask 2023.3.0` 在 Python 3.12 上导入即报错（dask 过旧）；
+   - 新版 dask（2026.x）需要 `pyarrow`；
+   - `datashader 0.19.1` 已不依赖 dask，因此直接不装。
+   - 社区源也提供 `pyarrow-25.x-ohos_aarch64` wheel，当前不需要。
+3. **numpy < 2**：源码仍使用 NumPy 2 已改名的 `np.trapz`
+   （`src/raytracepy/ref_data/utils_ref_data.py`）。
+4. **plotly 7.1.0**：官方示例 `examples/single/single_light.py` 在其上正常运行
+   （退出码 0，生成 HTML）。
 
-`datashader` 依赖 `dask`；不固定版本时 pip 会装最新 `dask`，其 `dask.dataframe`
-需要 `pyarrow`，目标环境导入 datashader 会失败。可用版本：`dask==2023.3.0`。
-
-## numba JIT
-
-import / 编译 OK，**执行编译产物段错误**（多版本已复现；崩溃点
-`src/raytracepy/raytrace.py:175`）。
-
-**规避已由 PR #4 合并**：`src/raytracepy/__init__.py` 原先无条件
-`numba.config.DISABLE_JIT = False`，会覆盖 numba 读取的 `NUMBA_DISABLE_JIT`；
-现已改为仅在未显式设置时强制开启（默认行为不变）。因此运行测试/示例加
-`NUMBA_DISABLE_JIT=1` 即可，不再需要源码级恒等装饰器。
-
-历史固定负载关 JIT 后的整数计数与 Windows 参考逐位一致（直方图 sha256 相同），浮点统计在容差内；
-300 万光线耗时 67.53 s vs 参考 22.33 s，约 3.0 倍。是否必须修复 JIT 待老师裁定。
-
-## 历史端到端记录（关 JIT）
-
-以下为 PR #7 前的设备记录，不代表最新安装包已完成设备复测。
-
-- `NUMBA_DISABLE_JIT=1 pytest -q tests/` → 7 passed
-- `examples/single/single_light.py` 保存 300 万光线统计输出与 HTML（原始日志未记录退出码）
-- 干净 venv 按上述步骤从零安装 → 导入 OK + 冒烟仿真 OK + 7 passed
-  （见 `PORTING_REPORT.md` 第六节与 `artifacts/environment/harmonyos-pc/fresh-env-install.log`）
-
-## Windows 专用产物
+## 四、Windows 专用产物
 
 `src/raytracepy/compile/math_custom.cp310-win_amd64.pyd` 为 Windows/AMD64 二进制，
 目标环境不可用；该目录未被任何代码引用，**不影响导入与运行**。
 
-## 未决
+## 五、未决
 
 | 问题 | 谁 |
 |---|---|
-| JIT 是否必须修复 | 老师 |
-| Alpine-py310 是否算原生验收 | 老师 |
-| 接受设备栈偏离参考版本 | 组长 |
+| 应用形态与上架流程 | 1号 / 老师 |
+| NumPy 2.x、新版 datashader 的完整回归 | 4号 |
 
-未解决项详见 `artifacts/dependencies/harmonyos-pc/ISSUES.md`。
+未解决项详见 `artifacts/dependencies/harmonyos-pc/ISSUES.md`（历史记录）。
