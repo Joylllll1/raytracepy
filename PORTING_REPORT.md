@@ -83,8 +83,8 @@ RayTracePy 0.0.1 可在鸿蒙 PC 上**安装、导入、运行测试与官方示
 
 自建 Alpine CPython 3.10.15 + ELF 修补 + 签名 + 2 个兼容 shim 的方案也曾完整跑通
 （安装、导入、示例、7 项测试、全新 venv 复测），但 JIT 无法执行、只能纯 Python，
-且解释器非为鸿蒙编译。相关日志保留在 `artifacts/environment/harmonyos-pc/` 与
-`artifacts/revalidation/harmonyos-pc/2026-10-07/`，工具归档在 `scripts/harmonyos/`。
+且解释器非为鸿蒙编译。该方案及其日志/工具已随仓库清理移除，
+如需查阅可从 git 历史找回（清理前提交 `236e13f`）。
 
 ## 七、已知问题
 
@@ -96,7 +96,6 @@ RayTracePy 0.0.1 可在鸿蒙 PC 上**安装、导入、运行测试与官方示
 | 4 | `scripts/check_environment.py` 的 `@njit` 探针只测简单函数 | 检测结论可能偏乐观 | 已记录；建议后续加强为跑一个极小仿真 |
 | 5 | `scripts/generate_reference_baseline.py` 的 `--expected-output` 是**输出**参数，覆盖已存在文件时不提示 | 误指向参考基线会静默覆盖 | 使用前勿指向 `artifacts/reference/`；建议加 `--force` 保护并改名（未修） |
 | 6 | `src/raytracepy/compile/math_custom.cp310-win_amd64.pyd` 为 Windows 专用 | 无 | 该目录未被任何代码引用，不影响导入与运行 |
-| 7 | 自建 Alpine 工具链已归档但不再使用 | 仅历史参考 | 见 `scripts/harmonyos/README.md`；新环境不需要签名/shim |
 
 ## 八、交付物清单
 
@@ -111,6 +110,4 @@ RayTracePy 0.0.1 可在鸿蒙 PC 上**安装、导入、运行测试与官方示
 | 环境检测脚本 / 安装脚本 | `scripts/check_environment.py`、`scripts/install_dependencies_harmonyos.py` |
 | 自动化测试 | `tests/`（7 项）、`scripts/tests/`（75 项） |
 | 当前环境实测证据 | `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/` |
-| 历史环境证据（Alpine） | `artifacts/environment/harmonyos-pc/`、`artifacts/revalidation/harmonyos-pc/2026-10-07/` |
 | 源码兼容性说明 | `SOURCE_COMPATIBILITY.md` |
-| 历史环境工具（已不再使用） | `scripts/harmonyos/`；18 个 Alpine 包见 Release 附件 `ohos-python-tools-apks.tar.gz` |

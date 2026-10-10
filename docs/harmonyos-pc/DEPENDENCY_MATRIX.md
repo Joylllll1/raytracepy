@@ -59,5 +59,3 @@
 |---|---|
 | 应用形态与上架流程 | 1号 / 老师 |
 | NumPy 2.x、新版 datashader 的完整回归 | 4号 |
-
-未解决项详见 `artifacts/dependencies/harmonyos-pc/ISSUES.md`（历史记录）。

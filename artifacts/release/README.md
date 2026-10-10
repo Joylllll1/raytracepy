@@ -25,6 +25,6 @@ PR #7 的 SciPy/NumPy 兼容修复。版本号保持 0.0.1；同名文件替换�
 Python 文件与源码一致；CDF 功能通过解析解检查。历史 Windows 与鸿蒙
 直方图数据重新核验一致，但没有重新在鸿蒙设备执行仿真。
 
-**最新包的鸿蒙设备复测待完成**；这些本地结果不代表设备验收已通过。
-操作步骤见 `docs/harmonyos-pc/REVALIDATION.md`。解释器来源、关闭 JIT 的交付
-方式和性能要求仍待老师确认。
+本次构建与本地验证在 macOS / CPython 3.12 上执行；**鸿蒙设备侧的复测见**
+`docs/harmonyos-pc.md` 与 `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`
+（官方鸿蒙化 Python 3.12.9，7 passed，300 万光线与参考逐位一致）。

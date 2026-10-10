@@ -93,10 +93,8 @@ cd <任意输出目录>
 | `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` | 环境说明、安装步骤、版本矩阵、踩坑记录 |
 | `docs/harmonyos-pc/DEPENDENCY_MATRIX.md` | 依赖兼容矩阵 |
 | `docs/harmonyos-pc/REFERENCE_COMPARISON.md` | 参考环境与目标环境的数值对比 |
-| `docs/harmonyos-pc/REVALIDATION.md` | 安装包设备复测步骤与结果 |
 | `PORTING_REPORT.md` | 移植报告与已知问题 |
 | `SOURCE_COMPATIBILITY.md` | 源码兼容性说明 |
 
 > 历史环境（2026-09-25 ~ 10-07 使用的自建 Alpine CPython 3.10 + ELF 修补 + shim 方案）
-> 已被官方运行时取代，说明见 `PYTHON_ENVIRONMENT.md` 第六节；`scripts/harmonyos/`
-> 中的相关工具保留作历史记录，新环境不再需要。
+> 已被官方运行时取代，相关工具与日志已随仓库清理移除，可从 git 历史找回。

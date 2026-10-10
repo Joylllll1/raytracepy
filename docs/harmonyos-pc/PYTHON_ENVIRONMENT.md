@@ -86,14 +86,14 @@ cd <repo>
 ## 六、历史环境（已不再使用）
 
 2026-09-25 ~ 10-07 期间使用过一套自建方案：Alpine 3.10.15 的 CPython 3.10.15 +
-`patchelf` 修补 + ELF 签名 + 两个兼容 shim + 设备专用 numba/llvmlite wheel
-（工具归档在 `scripts/harmonyos/`，apk 见 Release 附件）。该方案能跑通，但：
+`patchelf` 修补 + ELF 签名 + 两个兼容 shim + 设备专用 numba/llvmlite wheel。
+该方案能跑通，但：
 
 - 解释器不是为鸿蒙编译的（`aarch64-alpine-linux-musl`）；
 - numba JIT 执行段错误，只能跑纯 Python 路径（约 3 倍耗时）。
 
-**该方案已被官方鸿蒙化运行时取代**，`scripts/harmonyos/` 中的工具保留作历史记录，
-新环境不再需要。
+**该方案已被官方鸿蒙化运行时取代**，相关工具与日志已随仓库清理移除，
+如需查阅可从 git 历史找回（清理前提交 `236e13f`）。
 
 ## 七、待办
 
