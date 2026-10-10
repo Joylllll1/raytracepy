@@ -1,7 +1,13 @@
-# 鸿蒙 PC Python 环境准备工具（归档）
+# 鸿蒙 PC Python 环境准备工具（历史归档，已不再使用）
 
-本目录归档目标设备 Python 环境的准备工具，使环境**可复现**。
-环境的版本矩阵与步骤说明见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 第三节。
+> **2026-10-10 起，目标环境已切换为官方"鸿蒙化" CPython 3.12.9**
+> （`ohos-aarch64` / `aarch64-unknown-linux-ohos`，社区安装器一键安装）。
+> 新环境**不需要**本目录中的任何工具（不需要 ELF 修补、签名或 shim）；
+> 安装步骤见 `docs/harmonyos-pc.md` 第二节与 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md`。
+> 本目录仅作为 2026-09 ~ 10-07 自建 Alpine 方案的历史记录保留。
+
+本目录归档当时用于自建 Alpine CPython 3.10.15 环境的准备工具，
+当时的版本矩阵与步骤见 `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` 第六节。
 
 ## 已归档内容
 

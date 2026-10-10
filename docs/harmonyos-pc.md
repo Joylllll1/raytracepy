@@ -1,13 +1,16 @@
 # 鸿蒙 PC 安装与使用说明
 
 RayTracePy 0.0.1 在鸿蒙 PC（HarmonyOS 6.1.0 / aarch64，HUAWEI MateBook Pro HAD-W32）
-上的安装、验证与使用方式。2026-09-26 / 28 的设备记录显示，历史版本在关闭 JIT
-后完成安装、导入、官方示例和测试。2026-10-07 重建的安装包已纳入 PR #7，
-最新包的设备复测尚未完成，步骤见 `docs/harmonyos-pc/REVALIDATION.md`。
+上的安装、验证与使用方式。
 
-- 目标环境版本矩阵与可重复准备步骤：`docs/harmonyos-pc/PYTHON_ENVIRONMENT.md`
+**2026-10-10 更新**：目标环境已切换为**官方"鸿蒙化" CPython 3.12.9**
+（OpenHarmony PC Developer 社区发布，目标三元组 `aarch64-unknown-linux-ohos`）。
+在该环境上已实测：安装、导入、pytest 7 项全过、官方示例跑通、300 万光线参考负载
+与 Windows 参考逐位一致，**numba JIT 正常工作**。
+
+- 环境说明与安装细节：`docs/harmonyos-pc/PYTHON_ENVIRONMENT.md`
 - 依赖清单与兼容矩阵：`requirements-harmonyos.txt`、`docs/harmonyos-pc/DEPENDENCY_MATRIX.md`
-- 实测证据：`artifacts/environment/harmonyos-pc/`
+- 实测证据：`artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`
 - 参考环境：Windows AMD64 + CPython 3.10.21（见 `docs/testing/REFERENCE_BASELINE.md`）
 
 ## 一、环境要求
@@ -15,104 +18,85 @@ RayTracePy 0.0.1 在鸿蒙 PC（HarmonyOS 6.1.0 / aarch64，HUAWEI MateBook Pro 
 | 项目 | 要求 |
 |---|---|
 | 系统 | HarmonyOS 6.1.0（API 23），aarch64，HongMeng Kernel 1.12.0 |
-| Python | CPython 3.10.x（目标环境用 3.10.15，aarch64/musl） |
-| numpy | 按当前验证范围固定为 **< 2.0**，推荐 1.26.4；`np.NaN` 已修复，但仍使用 `np.trapz`，尚未完成 NumPy 2.x 回归 |
+| Python | **官方鸿蒙化 CPython 3.12.9**（`ohos-aarch64`，装于 `~/usr/local`） |
+| pip 源 | 社区源 `pypi.cnb.cool`（安装器自动配置） |
+| numpy | 固定 **< 2.0**（源码仍使用 `np.trapz`），推荐 1.26.3 |
 | 其它依赖 | 见 `requirements-harmonyos.txt` |
-| 工具链 | clang 15.0.4 / make / cmake / ninja（`/data/service/hnp/bin`） |
 
 ## 二、安装
 
-### 方式 A：源码安装（含后处理）
-
-以下依赖安装和后处理顺序有历史干净 venv 验证记录；其中第 6 步的旧记录使用
-wheel 安装（见 `PORTING_REPORT.md` 第六节）。最新源码安装仍需设备复测。
-
 ```bash
+# 1) 官方鸿蒙化 Python 运行时（装到 ~/usr/local，自动配置 pip 社区源）
+curl -fsSL https://gitcode.com/OpenHarmonyPCDeveloper/cmd-pkgs/releases/download/pkgs/install-python.sh | sh -s -- 3.12.9
+
+# 2) 新建独立 venv
 cd <repo>
-python -m venv .venv-fresh && source .venv-fresh/bin/activate
-export PIP_INDEX_URL=https://pypi.org/simple     # 见"常见问题"
-W=~/.local/ohos-python-tools/wheels
-T=~/.local/ohos-python-tools
-SP=.venv-fresh/lib/python3.10/site-packages
+~/usr/local/bin/python3 -m venv .venv-ohos
 
-# 1) numpy
-pip install numpy==1.26.4
+# 3) 安装依赖（必须 --prefer-binary，且固定版本）
+.venv-ohos/bin/python -m pip install --prefer-binary \
+  numpy==1.26.3 scipy==1.15.3 pandas==2.3.1 numba==0.65.1 llvmlite==0.47.0 \
+  plotly==7.1.0 datashader==0.19.1 pytest==9.1.1 pytest-cov==7.1.0
 
-# 2) 设备专用 wheel（PyPI 无 musllinux 版；必须先于其它依赖安装）
-pip install "$W/llvmlite-0.44.0-cp310-cp310-linux_aarch64.whl" \
-            "$W/numba-0.61.2-cp310-cp310-linux_aarch64.whl"
-
-# 3) 其余依赖（含全部传递依赖，已固定版本）
-pip install -r requirements-harmonyos.txt
-
-# 4) 后处理：ELF 元数据 + musl 兼容 + 代码签名
-$T/fixall.py "$SP"
-
-# 5) 后处理：给 numba 的 4 个扩展链接 stl shim
-$T/add_stlshim.py "$SP"
-
-# 6) 本项目
-pip install -e .
+# 4) 安装本项目（源码可编辑安装，或安装 artifacts/release/ 里的 wheel）
+.venv-ohos/bin/python -m pip install -e .
 ```
 
-**第 4、5 步不可省略**：OpenHarmony 要求 ELF 带 `.codesign` 段才能 `dlopen`，
-未签名的扩展会报 `Permission denied`；numba 的扩展还缺一个 libstdc++ 符号，
-需要 shim，否则报 `symbol not found: _ZNSt20bad_array_new_lengthC1Ev`。
+也可以一条命令：`scripts/install_dependencies_harmonyos.py`。
 
-### 方式 B：wheel 安装
-
-本次交付的安装包已放在 `artifacts/release/`（构建时默认写到 `dist/`）：
-
-```bash
-python -m pip install --force-reinstall --no-deps artifacts/release/raytracepy-0.0.1-py3-none-any.whl
-```
-
-wheel 的 tag 为 `py3-none-any`（与上游 PyPI 发布一致）。
-依赖仍需按方式 A 的第 1–5 步安装，之后才能导入。
-项目版本号仍为 0.0.1，因此升级旧包时使用 `--force-reinstall`；`--no-deps`
-保留已经按鸿蒙清单安装的依赖。包的校验和与本地验证记录见 `artifacts/release/README.md`。
+**为什么必须 `--prefer-binary`**：pip 会在"社区源 + 备用源"间取最高版本，备用源更新的
+源码包会盖掉社区源的 ohos wheel（实测 matplotlib 会因此构建失败）。
 
 ## 三、验证安装
 
 ```bash
 cd <repo>
-source .venv-fresh/bin/activate       # 或实际使用的虚拟环境
-python scripts/check_environment.py     # 期望：RESULT: OK
-NUMBA_DISABLE_JIT=1 pytest -q tests/    # 期望：7 passed
+.venv-ohos/bin/python scripts/check_environment.py     # 期望 RESULT: OK（可能提示缺 setuptools/wheel）
+.venv-ohos/bin/python -m pytest -q tests/ -o addopts=''  # 期望 7 passed
 ```
+
+与旧环境不同：**不再需要 `NUMBA_DISABLE_JIT=1`**，JIT 正常工作。
 
 ## 四、运行官方示例
 
 ```bash
 cd <任意输出目录>
-NUMBA_DISABLE_JIT=1 python <repo>/examples/single/single_light.py
+<repo>/.venv-ohos/bin/python <repo>/examples/single/single_light.py
 ```
 
-示例会运行 300 万光线的仿真、打印统计信息并生成 `single_led.html`。
-实测输出与耗时见 `artifacts/environment/harmonyos-pc/example-run/`。
+2026-10-10 实测：退出码 0，生成 `single_led.html`（169 KB）。
 
 ## 五、常见问题
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| 运行时报 `Segmentation fault` | 设备上 numba JIT 执行编译产物会崩溃 | 加 `NUMBA_DISABLE_JIT=1`（需 `fix/numba-disable-jit-override` 的源码守卫） |
-| `ImportError: cannot import name 'cumtrapz'` 或 `AttributeError: np.NaN` | 使用了 PR #7 修复前的旧包 | 重装 2026-10-07 更新的 wheel；依赖仍按清单固定 |
-| `pip` 装不上 numba / llvmlite | PyPI 无 musllinux wheel | 用设备专用 wheel，见 `PYTHON_ENVIRONMENT.md` 第三节 |
-| `No matching distribution found for numpy` 等 | pip 全局索引指向 OpenHarmony 开发者镜像，其中没有这些包 | `export PIP_INDEX_URL=https://pypi.org/simple` 后重试 |
-| `ImportError: ... Permission denied` 加载 `.so` | 扩展没有 `.codesign` 段，OpenHarmony 拒绝 `dlopen` | 运行 `fixall.py <site-packages>`（含签名） |
-| `symbol not found: _ZNSt20bad_array_new_lengthC1Ev` | numba 的 clang 编译扩展缺 libstdc++ 符号 | 运行 `add_stlshim.py <site-packages>` |
-| `ModuleNotFoundError: No module named 'pyarrow'` | 未固定 dask 版本，新版 `dask.dataframe` 需要 pyarrow | 按 `requirements-harmonyos.txt` 固定 `dask==2023.3.0` |
-| 末尾出现 `start: not found` | 示例通过 Windows 的 `start` 命令打开 HTML，鸿蒙不提供该命令 | 检查 HTML 已生成后手动打开 |
-| 运行明显比参考环境慢 | 历史目标运行关闭 JIT，且两端硬件不同 | 300 万光线约 67.53 s vs 22.33 s（3.02 倍）；整数计数和直方图一致，浮点差在容差内 |
+| 依赖装成了源码包并构建失败 | 备用源的高版本 sdist 盖过社区源 wheel | 加 `--prefer-binary`，并固定版本 |
+| `import datashader` 报错 | 装了 dask | **不要装 dask**；`datashader 0.19.1` 已不依赖它（旧版 0.16.x 与新 dask 不兼容） |
+| `AttributeError: np.trapz` | 装了 numpy 2.x | 固定 `numpy==1.26.3` |
+| 末尾出现 `start: not found` | 示例用 Windows 命令自动打开 HTML | 可忽略，HTML 已生成 |
+| 想跑纯 Python 路径 | 调试/对比用 | `NUMBA_DISABLE_JIT=1` 仍然有效（源码守卫保留） |
 
-## 六、相关文档
+## 六、应用形态与上架（进行中）
+
+需要说明：**RayTracePy 本身是 Python 库**（无界面、无入口），无法直接"上架"，
+上架的必须是基于它的**应用**。老师的方向是"上架并可正常使用"。
+
+- 可用的 GUI 工具链（社区源有鸿蒙原生 wheel）：**tkinter 3.12.9.post1 + matplotlib 3.11.1**；
+  PySide/PyQt 在社区源里**没有**鸿蒙 wheel。
+- 待定：应用形态（命令行工具 / 桌面小工具）与上架流程，确认后按
+  《开源应用上架指南》执行。
+
+## 七、相关文档
 
 | 文档 | 内容 |
 |---|---|
-| `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` | 目标环境说明、版本矩阵、可重复准备步骤 |
+| `docs/harmonyos-pc/PYTHON_ENVIRONMENT.md` | 环境说明、安装步骤、版本矩阵、踩坑记录 |
 | `docs/harmonyos-pc/DEPENDENCY_MATRIX.md` | 依赖兼容矩阵 |
-| `docs/harmonyos-pc/PYTHON_ENVIRONMENT_PROBE.md` | 环境探测报告与实测结果 |
 | `docs/harmonyos-pc/REFERENCE_COMPARISON.md` | 参考环境与目标环境的数值对比 |
+| `docs/harmonyos-pc/REVALIDATION.md` | 安装包设备复测步骤与结果 |
 | `PORTING_REPORT.md` | 移植报告与已知问题 |
-| `docs/harmonyos-pc/REVALIDATION.md` | 最新 wheel 的设备复测与验收确认待办 |
-| `docs/testing/REFERENCE_BASELINE.md` | 参考环境基线与测试说明 |
+| `SOURCE_COMPATIBILITY.md` | 源码兼容性说明 |
+
+> 历史环境（2026-09-25 ~ 10-07 使用的自建 Alpine CPython 3.10 + ELF 修补 + shim 方案）
+> 已被官方运行时取代，说明见 `PYTHON_ENVIRONMENT.md` 第六节；`scripts/harmonyos/`
+> 中的相关工具保留作历史记录，新环境不再需要。

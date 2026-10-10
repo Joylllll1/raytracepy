@@ -1,102 +1,101 @@
 # 鸿蒙 PC Python 环境说明
 
 - 整理：1号（在目标设备上实测）
-- 日期：2026-09-26
-- 说明更新：2026-10-07；以下设备版本与结果为历史记录，最新包复测见 `REVALIDATION.md`
+- 日期：2026-10-07 首版（Alpine 方案）；**2026-10-10 更新：改用官方鸿蒙化运行时**
 - 设备：HUAWEI MateBook Pro（HAD-W32），HarmonyOS 6.1.0，API 23，aarch64，32 GB
-- 相关文档：`PYTHON_ENVIRONMENT_PROBE.md`（探测过程与解释器来源）、
-  `../../artifacts/environment/harmonyos-pc/`（原始证据）
+- 相关文档：`docs/harmonyos-pc.md`（安装使用）、`DEPENDENCY_MATRIX.md`（依赖矩阵）、
+  `../../artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`（实测证据）
 
-## 一、现状（实测）
+## 一、结论
 
-历史目标设备项目根目录下的 `.venv` 为测试环境，`raytracepy` 以 editable
-方式安装（`-e .`，源码树 `src/`）；本地电脑的虚拟环境不能代替设备验证：
+目标环境已切换为**官方"鸿蒙化" CPython 3.12.9**（OpenHarmony PC Developer 社区发布），
+为鸿蒙原生构建：
 
-| 组件 | 版本 |
+| 项目 | 值 |
 |---|---|
-| Python | 3.10.15（CPython，aarch64，musl，`~/.local/alpine-py310`） |
-| 目标三元组 | `aarch64-alpine-linux-musl` |
-| pip / setuptools / wheel | 26.2.1 / 65.5.0 / 0.48.0 |
-| numpy | 1.26.4 |
-| scipy | 1.15.3 |
-| pandas | 2.2.3 |
-| numba | 0.61.2 |
-| llvmlite | 0.44.0（LLVM 15.0.7） |
-| plotly | 5.6.0 |
-| datashader | 0.16.3 |
-| pytest / pytest-cov | 9.1.1 / 7.1.0 |
-| 工具链 | `/data/service/hnp/bin` 下 `clang`/`clang++` 15.0.4、`make`、`cmake`、`ninja` |
+| 平台标识 | `ohos-aarch64` |
+| 目标三元组 | `aarch64-unknown-linux-ohos` |
+| 扩展后缀 | `.cpython-312-aarch64-linux-ohos.so` |
+| 安装位置 | `~/usr/local`（自带 pip，自动配置社区源） |
 
-## 二、验证（实测）
+实测结论：**raytracepy 可正常安装、导入、跑测试与官方示例，numba JIT 正常工作**，
+计算结果与 Windows 参考环境逐位一致。此前在自建 Alpine 环境上出现的 JIT 段错误、
+需要 ELF 修补/签名/shim 等问题**均已消失**。
+
+## 二、安装（已实测）
 
 ```bash
+# 1) 安装官方运行时（默认装到 ~/usr/local，并自动配置社区 pip 源）
+curl -fsSL https://gitcode.com/OpenHarmonyPCDeveloper/cmd-pkgs/releases/download/pkgs/install-python.sh | sh -s -- 3.12.9
+
+# 2) 建独立 venv（不要复用旧的 Alpine venv）
 cd <repo>
-source .venv/bin/activate
-python scripts/check_environment.py        # RESULT: OK，无阻塞、无警告
-NUMBA_DISABLE_JIT=1 pytest -q tests/       # 7 passed
+~/usr/local/bin/python3 -m venv .venv-ohos
+
+# 3) 安装依赖：必须加 --prefer-binary，并固定版本
+.venv-ohos/bin/python -m pip install --prefer-binary \
+  numpy==1.26.3 scipy==1.15.3 pandas==2.3.1 numba==0.65.1 llvmlite==0.47.0 \
+  plotly==7.1.0 datashader==0.19.1 pytest==9.1.1 pytest-cov==7.1.0
+
+# 4) 安装本项目
+.venv-ohos/bin/python -m pip install -e .
 ```
 
-- 环境检测输出：`artifacts/environment/harmonyos-pc/check_environment.log`、
-  同目录 `environment.json`（键集覆盖参考基线文件，可直接对比）
-- 测试证据：`artifacts/environment/harmonyos-pc/pytest-evidence.log`
+也可以直接运行 `python scripts/install_dependencies_harmonyos.py`（内部按上述顺序执行）。
 
-注意：不加 `NUMBA_DISABLE_JIT=1` 时 `pytest` 会段错误（numba JIT 产物无法执行），
-且该变量需要 `fix/numba-disable-jit-override` 的源码守卫才会生效，见第四节。
+## 三、版本矩阵（实测）
 
-## 三、可重复执行的环境准备步骤
+| 组件 | 版本 | 来源 |
+|---|---|---|
+| Python | 3.12.9（ohos-aarch64） | 社区官方安装器 |
+| pip | 26.2.1 | 安装器自带 |
+| numpy | 1.26.3 | 社区源 `cp312-ohos_aarch64` wheel |
+| scipy | 1.15.3 | 社区源 wheel |
+| pandas | 2.3.1 | 社区源 wheel |
+| numba | 0.65.1 | 社区源 wheel |
+| llvmlite | 0.47.0 | 社区源 wheel |
+| plotly | 7.1.0 | 纯 Python |
+| datashader | 0.19.1 | 纯 Python（**不再依赖 dask**） |
+| matplotlib / tkinter | 3.11.1 / 3.12.9.post1 | 社区源 wheel（应用形态用） |
+| pytest / pytest-cov | 9.1.1 / 7.1.0 | 纯 Python |
 
-> 完整准备工具位于目标设备 `~/.local/ohos-python-tools/`（`setup_py310.sh`、
-> `fixall.py`、`fixcompat.py`、`fixwheels.py`、`selfsign.py`、`add_stlshim.py`、
-> `stlshim.cpp`、`pyapks/`、`wheels/`）。
-> 自研脚本、shim 与设备 wheel 已归档到 `scripts/harmonyos/`；18 个 Alpine apk
-> 见 Release 附件 `ohos-python-tools-apks.tar.gz`。第三方签名工具 `selfsign.py`
-> 与 harmonybrew 的 libffi 仍需外部准备，清单见 `scripts/harmonyos/README.md`。
+## 四、验证结果（2026-10-10 实测）
 
-依据 `setup_py310.sh`，环境由以下步骤构成：
+| 项目 | 结果 |
+|---|---|
+| JIT | ✅ 正常执行（`numba.config.DISABLE_JIT = 0`，冒烟仿真结果与预期 sha256 逐位一致） |
+| 自动化测试 | `pytest -q tests/` → **7 passed**（JIT 开启） |
+| 300 万光线参考负载 | hit_count 1923054、`histogram_sha256` **与 Windows 参考逐位一致**、**33.40 s**、`repeat_identical=True` |
+| 官方示例 | `examples/single/single_light.py` 退出码 0，生成 `single_led.html`（169 KB） |
+| 环境检测 | `RESULT: OK_WITH_WARNINGS`（仅提示未装 `setuptools`/`wheel` 构建工具） |
+| 性能对比 | Windows 参考 22.33 s；本设备 33.40 s（约 1.5 倍，差异主要来自硬件） |
 
-1. 准备一份**带签名的 musl loader 副本**：OpenHarmony 拒绝直接执行未签名的 ELF，
-   而 pip / setuptools / packaging 会调用 loader 探测 musl 版本。
-2. 解压 Alpine 3.10.15 的 apk 集合到 `~/.local/alpine-py310`
-   （python3、python3-dev、readline、sqlite、xz、zlib、openssl 等）。
-3. **替换 libffi（3.4.4 → 3.8.0）**：Alpine 的 3.4.4 在本内核上
-   `ffi_closure_alloc()` 返回 NULL，ctypes 回调（numba 依赖）因此不可用。
-4. **平台补丁**：`sysconfig.get_platform()` → `linux-aarch64`，
-   `platform.system()` → `Linux`（与 harmonybrew 构建保持一致，使 pip 产出 musllinux 标签）。
-5. **`patchelf` 全量修补**：设置 rpath；把 `libc.musl-aarch64.so.1` 换成 `libc.so`
-   （否则会加载第二份 libc）；给 `lib-dynload/*.so` 追加 `libpython3.10.so.1.0` 依赖；
-   把 `bin/python3.10` 的解释器指向签名后的 loader。
-6. **对所有 ELF 逐个签名**（OpenHarmony 的 fs-verity 代码签名要求）。
-7. **安装预编译 wheel**：`llvmlite-0.44.0-cp310-cp310-linux_aarch64.whl`、
-   `numba-0.61.2-cp310-cp310-linux_aarch64.whl`；`stlshim` 兼容 shim 仅挂在
-   numba 的 4 个扩展与 pillow 的 libzstd 上。
-8. 创建 `.venv`，安装 numpy / scipy / pandas / plotly / datashader / pytest / pytest-cov
-   与 `-e .`。
+## 五、安装时踩过的坑（重要）
 
-选 3.10 的原因：参考栈（numba 0.56.4 系列）只覆盖到 Python 3.10；
-harmonybrew 只提供 `python@3.12/3.13/3.14`，因此改用 Alpine 的 CPython 3.10 二进制。
+1. **必须 `--prefer-binary`**：pip 会在"社区源 + 备用源（清华/PyPI）"之间取最高版本，
+   备用源的新源码包会顶掉社区源的 ohos wheel（实测 matplotlib 3.11.2 sdist 顶掉 3.11.1 wheel，
+   随后因缺 meson 构建失败）。
+2. **不要装 dask**：
+   - `datashader 0.16.x + dask 2023.3.0` 在 Python 3.12 上导入即报错（dask 太旧）；
+   - 新版 dask（2026.x）又需要 `pyarrow`；
+   - `datashader 0.19.1` 已不再依赖 dask，因此直接不装 dask 即可（社区源也有
+     `pyarrow-25.x-ohos_aarch64` wheel，但当前不需要）。
+3. **numpy 必须 <2**：源码仍使用 NumPy 2 已改名的 `np.trapz`
+   （`ref_data/utils_ref_data.py`）。
 
-## 四、已知限制
+## 六、历史环境（已不再使用）
 
-1. **解释器不是为鸿蒙编译的**：Alpine 官方 3.10 二进制 + ELF 元数据修补，
-   在设备上原生执行（aarch64 指令、链接系统 musl，无虚拟机、无容器、无模拟层）。
-   验收是否接受该口径待老师裁定，见 `PYTHON_ENVIRONMENT_PROBE.md` 第十节。
-2. **numba JIT 产物无法执行**：JIT 能编译，执行编译产物时段错误
-   （`src/raytracepy/raytrace.py:175`）。历史固定负载的整数计数和直方图与参考
-   逐位一致，浮点统计在容差内；耗时 67.53 s vs 22.33 s，约 3.02 倍，
-   包含硬件差异（见 `REFERENCE_COMPARISON.md`）。
-3. **需显式关闭 JIT**：`NUMBA_DISABLE_JIT=1` 原本被
-   `src/raytracepy/__init__.py` 的 `numba.config.DISABLE_JIT = False` 覆盖；
-   修复分支 `fix/numba-disable-jit-override` 只在该变量显式设置时才尊重它，
-   默认行为不变。
-4. **Windows 专用产物不适用**：`src/raytracepy/compile/math_custom.cp310-win_amd64.pyd`
-   在非 Windows/AMD64 上不可用；该目录未被主路径引用，不影响导入与运行。
-5. **环境重建仍有外部依赖**：自研工具已归档，apk 已记录为 Release 附件；
-   `selfsign.py` 与 libffi 仍需外部准备。历史全新 venv 验证以已安装解释器的
-   设备为前提，没有验证裸设备从零重建。
+2026-09-25 ~ 10-07 期间使用过一套自建方案：Alpine 3.10.15 的 CPython 3.10.15 +
+`patchelf` 修补 + ELF 签名 + 两个兼容 shim + 设备专用 numba/llvmlite wheel
+（工具归档在 `scripts/harmonyos/`，apk 见 Release 附件）。该方案能跑通，但：
 
-## 五、结论
+- 解释器不是为鸿蒙编译的（`aarch64-alpine-linux-musl`）；
+- numba JIT 执行段错误，只能跑纯 Python 路径（约 3 倍耗时）。
 
-目标设备上的 CPython 3.10.15 环境**可以安装、导入并运行 RayTracePy**：
-检测脚本判定 `OK`，`NUMBA_DISABLE_JIT=1 pytest -q tests/` 为 `7 passed`，
-历史固定负载的整数计数与直方图一致，浮点统计在容差内。最新安装包尚需设备
-复测；解释器来源、是否必须支持 JIT 与性能指标仍需老师确认。
+**该方案已被官方鸿蒙化运行时取代**，`scripts/harmonyos/` 中的工具保留作历史记录，
+新环境不再需要。
+
+## 七、待办
+
+- 应用形态与上架流程（老师要求"上架可正常使用"，见 `docs/harmonyos-pc.md`）；
+- 是否需要支持 NumPy 2.x / 新版 datashader 的完整回归。

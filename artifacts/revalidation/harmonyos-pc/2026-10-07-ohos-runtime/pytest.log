@@ -1,0 +1,12 @@
+.......                                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_minimal_simulation.py::test_minimal_simulation_completes_with_finite_hits
+  /storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:103: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'C', False, aligned=True), Array(float64, 1, 'A', False, aligned=True))
+    ray = normalise(refection_vector(ray, plane[7:10]))
+
+tests/test_minimal_simulation.py::test_minimal_simulation_completes_with_finite_hits
+  /storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:74: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'A', False, aligned=True), Array(float64, 1, 'C', False, aligned=True))
+    intersect_cord = plane_ray_intersection(rays_dir=ray,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 2 warnings in 17.24s

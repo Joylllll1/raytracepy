@@ -1,0 +1,2 @@
+Python 3.12.9
+ohos-aarch64 aarch64-unknown-linux-ohos

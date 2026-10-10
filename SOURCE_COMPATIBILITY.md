@@ -2,18 +2,21 @@
 
 ## 鸿蒙 PC
 
-RayTracePy 的主计算路径使用 Numba `@njit`。在当前鸿蒙 PC 环境中，Numba
-可以导入并完成编译，但执行生成的 JIT 代码会导致段错误。因此运行示例或
-测试前需要显式选择纯 Python 路径：
+RayTracePy 的主计算路径使用 Numba `@njit`。**在官方的鸿蒙化 CPython 3.12.9 运行时上，
+JIT 工作正常**（2026-10-10 实测：冒烟仿真与 300 万光线参考负载均正常执行，结果与
+Windows 基准逐位一致）。因此现在**不需要**关闭 JIT：
 
 ```sh
-NUMBA_DISABLE_JIT=1 python examples/single/single_light.py
+~/usr/local/bin/python3 -m venv .venv-ohos   # 官方鸿蒙化运行时
+.venv-ohos/bin/python examples/single/single_light.py
 ```
 
-`raytracepy` 保留上游默认行为（未设置变量时启用 JIT），但不再覆盖用户显式
-设置的 `NUMBA_DISABLE_JIT`。这使得同一份源码可以在支持 JIT 的平台上保持加速，
-并在当前鸿蒙环境中安全运行。根据设备侧验证，300 万条光线的官方示例在回退
-模式下可以完成，结果与 Windows 基准一致；JIT 本身仍属于平台限制，尚未适配。
+早期（2026-09 ~ 10-07）在自建 Alpine 环境上曾出现"JIT 能编译但执行段错误"，
+原因是那套环境经过 ELF 修补并挂了兼容 shim；换用官方运行时后该问题消失。
+
+`raytracepy` 仍保留 PR #4 的守卫：不再覆盖用户显式设置的 `NUMBA_DISABLE_JIT`，
+默认行为不变。这样在需要对比纯 Python 路径时仍可用
+`NUMBA_DISABLE_JIT=1`（**已非必需**，仅用于调试/性能对比）。
 
 仓库中的 `math_custom.cp310-win_amd64.pyd` 仅适用于 Windows x86-64，不能作为
 鸿蒙 ARM 二进制直接复用。`compile/` 下现有的 pycc 示例也没有覆盖
