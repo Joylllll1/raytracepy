@@ -1,84 +1,75 @@
 # 演示脚本（约 5 分钟）
 
-面向验收演示，在鸿蒙 PC 目标设备上执行。命令有历史设备运行记录；
-2026-10-07 更新的安装包尚需按 `REVALIDATION.md` 复测后再用于正式验收。
+面向验收演示，在鸿蒙 PC 目标设备上执行。命令均已在设备上实测
+（2026-10-10，官方鸿蒙化 Python 运行时）。
 
 ## 准备
 
 ```bash
 cd <repo>
-source .venv/bin/activate
+# 目标环境（官方鸿蒙化 Python 3.12.9）
+.venv-ohos/bin/python -V
 ```
 
 ## 1. 环境（30 秒）
 
 ```bash
-python -V                                  # Python 3.10.15
-python -c "import raytracepy, numpy, numba; print(raytracepy.__file__, numpy.__version__, numba.__version__)"
+.venv-ohos/bin/python -c "import raytracepy, numpy, numba; print(raytracepy.__file__, numpy.__version__, numba.__version__)"
+.venv-ohos/bin/python -c "import sysconfig; print(sysconfig.get_platform(), sysconfig.get_config_var('HOST_GNU_TYPE'))"
 ```
 
-说明：解释器为 Alpine 构建的 CPython 3.10.15，在鸿蒙设备上原生执行，
-非专门为鸿蒙编译。该方案是否满足验收要求待老师确认；依赖版本见
-`requirements-harmonyos.txt`。
+预期：`ohos-aarch64 aarch64-unknown-linux-ohos`（鸿蒙原生运行时）。
 
 ## 2. 环境自检（30 秒）
 
 ```bash
-python scripts/check_environment.py
+.venv-ohos/bin/python scripts/check_environment.py
 ```
 
-预期结尾：`RESULT : OK`，`blockers : none`，`warnings : none`。
-（完整输出见 `artifacts/environment/harmonyos-pc/check_environment.log`）
-
-此脚本的简单 JIT 探针通过，不代表 RayTracePy 的 JIT 路径可用；
-后续测试和示例仍须显式关闭 JIT。
+预期结尾：`RESULT : OK_WITH_WARNINGS`、`blockers : none`
+（可能提示未装 `setuptools`/`wheel` 构建工具，与运行无关）。
 
 ## 3. 自动化测试（1 分钟）
 
 ```bash
-NUMBA_DISABLE_JIT=1 pytest -q tests/
+.venv-ohos/bin/python -m pytest -q tests/ -o addopts=''
 ```
 
-预期：`7 passed`。
-
-> 必须带 `NUMBA_DISABLE_JIT=1`：设备上 numba 的 JIT 产物无法执行（见"已知问题"）。
+预期：`7 passed`。**JIT 开启即可**，不需要 `NUMBA_DISABLE_JIT`。
 
 ## 4. 运行官方示例（2 分钟）
 
 ```bash
 mkdir -p /tmp/demo && cd /tmp/demo
-NUMBA_DISABLE_JIT=1 python <repo>/examples/single/single_light.py
+<repo>/.venv-ohos/bin/python <repo>/examples/single/single_light.py
 ```
 
-预期：打印光线数与命中统计，最后生成 `single_led.html`。
-本仓库保存的实测产物：`artifacts/environment/harmonyos-pc/example-run/single_led.html`
-（含热力图与统计图，可直接在浏览器打开演示）。
+预期：打印光线数与命中统计，退出码 0，生成 `single_led.html`。
+实测产物见 `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/example-run/`。
 
 ## 5. 数值一致性（30 秒）
 
-展示 `docs/harmonyos-pc/REFERENCE_COMPARISON.md` 的历史对比结论
-（目标日志对应 `16761de`；最新包的结果需另存复测目录）：
+展示 `docs/harmonyos-pc/REFERENCE_COMPARISON.md`：
 
-- 300 万光线参考负载，`histogram_sha256` 与 Windows 参考环境**逐位相同**：
-  `bacd25e6…d0cc677`
-- 命中数、命中率、直方图形状与全部统计量一致
-- 浮点统计量最大差 1.9e-17（阈值 1e-6 / 1e-8）
+- 300 万光线参考负载，`histogram_sha256` 与 Windows 参考**逐位相同**；
+- 浮点统计量最大绝对差 1.8e-15（阈值 1e-6 / 1e-8）；
+- 设备 33.4 s vs Windows 22.3 s（约 1.5 倍，主要是硬件）。
 
 ## 6. 已知问题（30 秒）
 
 | 问题 | 现状 |
 |---|---|
-| numba JIT 产物无法执行 | 用纯 Python 路径，数值在容差内；历史耗时约为不同硬件参考环境的 3 倍 |
-| 解释器原生执行但非为鸿蒙编译 | 见 `PYTHON_ENVIRONMENT_PROBE.md` 第十节 |
-| 环境准备工具有外部依赖 | 自研脚本、shim 与设备 wheel 已归档；apk 见 Release 附件，签名工具和 libffi 仍需外部准备，见 `scripts/harmonyos/README.md` |
+| RayTracePy 是库、无界面 | 若要求"上架应用"，需在库之上另做一个应用（待确认） |
+| numpy 固定 <2 | 源码仍使用 `np.trapz`（NumPy 2 已改名） |
+| datashader 仅 `examples/` 使用 | 已适配 0.19.1；**不要安装 dask** |
 
 ## 演示材料清单
 
 | 材料 | 位置 |
 |---|---|
-| 环境自检输出 | `artifacts/environment/harmonyos-pc/check_environment.log` |
-| 测试证据 | `artifacts/environment/harmonyos-pc/pytest-evidence.log` |
-| 示例运行日志 | `artifacts/environment/harmonyos-pc/example-run/example-run.log` |
-| 示例产出（图形） | `artifacts/environment/harmonyos-pc/example-run/single_led.html` |
-| 数值对比 | `docs/harmonyos-pc/REFERENCE_COMPARISON.md` |
+| 环境自检输出 | `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/environment.log` |
+| 测试证据 | `artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/pytest.log` |
+| 示例运行日志 / 产出 | `.../example-run/example-run.log`、`.../example-run/single_led.html` |
+| 300 万光线对比 | `.../reference-comparison/single_light_run.log` |
+| 数值对比报告 | `docs/harmonyos-pc/REFERENCE_COMPARISON.md` |
 | 参考环境对照产物 | `artifacts/reference/windows-python310/single_light_report.html` |
