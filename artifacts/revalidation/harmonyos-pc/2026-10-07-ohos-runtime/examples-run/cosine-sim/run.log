@@ -1,0 +1,18 @@
+/storage/Users/currentUser/harmony/raytracepy/examples/cosine/cosine_sim.py:47: RuntimeWarning: divide by zero encountered in divide
+  a = np.pi/2 - np.arctan(z/x)
+/storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:103: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'C', False, aligned=True), Array(float64, 1, 'A', False, aligned=True))
+  ray = normalise(refection_vector(ray, plane[7:10]))
+/storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:74: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'A', False, aligned=True), Array(float64, 1, 'C', False, aligned=True))
+  intersect_cord = plane_ray_intersection(rays_dir=ray,
+/storage/Users/currentUser/harmony/raytracepy/examples/cosine/cosine_sim.py:55: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)
+  data[i, 3] = float(sim.planes[0].shape_grid(xy=np.array([[0, 0]]), r=0.2))
+0.0,4062.0
+0.11134101434096388,4029.0
+0.22409309230137087,3892.0
+0.3398369094541218,3761.0
+0.4605539916813224,3548.0
+0.5890309702162738,3343.0
+0.7297276562269663,3063.0
+0.8911225078866528,2496.0
+1.09491407713448,1822.0
+1.5707963267948966,0.0

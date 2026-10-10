@@ -1,0 +1,50 @@
+/storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:103: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'C', False, aligned=True), Array(float64, 1, 'A', False, aligned=True))
+  ray = normalise(refection_vector(ray, plane[7:10]))
+/storage/Users/currentUser/harmony/raytracepy/src/raytracepy/core.py:74: NumbaPerformanceWarning: np.dot() is faster on contiguous arrays, called on (Array(float64, 1, 'A', False, aligned=True), Array(float64, 1, 'C', False, aligned=True))
+  intersect_cord = plane_ray_intersection(rays_dir=ray,
+/system/bin/sh: start: inaccessible or not found
+
+Ray Trace Simulation Results (run: True)
+--------------------------------
+rays generated: 5000000
+max bounces: 20
+number of lights: 1
+number of planes: 5
+
+Light: light_0 (0)
+	 pos: [0. 0. 5.], dir: [ 0.  0. -1.]
+	 power: 1, num_rays: 5000000
+
+Plane: mirror_left (uid: 2)
+	 pos: [-5.   0.   2.5], norm: [1. 0. 0.]
+	 length: 10, width: 5
+	 hits: 286498
+	 type: TransmissionTypes.reflect
+
+Plane: mirror_right (uid: 3)
+	 pos: [5.  0.  2.5], norm: [-1.  0.  0.]
+	 length: 10, width: 5
+	 hits: 285556
+	 type: TransmissionTypes.reflect
+
+Plane: mirror_front (uid: 4)
+	 pos: [ 0.  -5.   2.5], norm: [0. 1. 0.]
+	 length: 10, width: 5
+	 hits: 286421
+	 type: TransmissionTypes.reflect
+
+Plane: mirror_back (uid: 5)
+	 pos: [0.  5.  2.5], norm: [ 0. -1.  0.]
+	 length: 10, width: 5
+	 hits: 285760
+	 type: TransmissionTypes.reflect
+
+Plane: ground (uid: 1)
+	 pos: [0. 0. 0.], norm: [0. 0. 1.]
+	 length: 10, width: 10
+	 hits: 3855765
+	 type: TransmissionTypes.absorb
+min   	1     	5     	10    	mean  	std  	90    	95    	99    	max   
+1120.0	1180.0	1250.0	1290.0	1610.0	289.0	2060.0	2190.0	2320.0	2470.0
+min  	1    	5    	10   	mean	std 	90  	95  	99  	max 
+0.698	0.737	0.776	0.803	1.0 	0.18	1.28	1.37	1.45	1.54

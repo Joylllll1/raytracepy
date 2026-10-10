@@ -63,13 +63,23 @@ RayTracePy 0.0.1 可在鸿蒙 PC 上**安装、导入、运行测试与官方示
 |---|---|---|
 | 环境检测 | `python scripts/check_environment.py` | `RESULT: OK_WITH_WARNINGS`（仅提示未装 `setuptools`/`wheel`）；`system: HarmonyOS` |
 | 自动化测试 | `python -m pytest -q tests/ -o addopts=''` | **7 passed**（JIT 开启，17.2 s） |
-| 官方示例 | `python examples/single/single_light.py` | 退出码 0，生成 `single_led.html` |
+| 官方示例（4 个） | 见下表 | 全部退出码 0 |
 | 参考负载对比 | `python scripts/generate_reference_baseline.py --input tests/fixtures/single_light_reference_input.json --verify-repeat` | 命中数 1923054、sha256 与参考一致、**33.40 s**、`repeat_identical=True` |
 | datashader 功能 | `ds.Canvas(...).points(...)` + `shade` | 通过（仅 `examples/` 使用） |
 
+官方示例实测（均在设备上、JIT 开启，日志与产出见
+`artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/examples-run/`）：
+
+| 示例 | 光线数 | 结果 |
+|---|---|---|
+| `examples/single/single_light.py` | 3,000,000 | 退出码 0，生成 `single_led.html` |
+| `examples/single/single_light_diffuser.py` | 1,000,000 | 退出码 0，生成 `diffuser.html`（用到 `ref_data` 的 SciPy 修复路径） |
+| `examples/single/single_light_mirrors.py` | 5,000,000 | 退出码 0，生成 `mirror.html` |
+| `examples/cosine/cosine_sim.py` | 5,000,000 | 退出码 0 |
+
 证据目录：`artifacts/revalidation/harmonyos-pc/2026-10-07-ohos-runtime/`
 （`python.txt`、`installed-packages.txt`、`pytest.log`、`environment.log|json`、
-`reference-comparison/`、`example-run/`）。
+`reference-comparison/`、`example-run/`、`examples-run/`）。
 
 ## 六、复测记录
 
